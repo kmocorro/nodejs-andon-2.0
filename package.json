@@ -1,0 +1,21 @@
+{
+  "name": "nodejs-andon-2.0",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bluebird": "^3.5.0",
+    "body-parser": "^1.18.2",
+    "ejs": "^2.5.7",
+    "express": "^4.16.1",
+    "moment": "^2.18.1",
+    "mysql": "^2.14.1",
+    "socket.io": "^2.0.3",
+    "tsv": "^0.2.0"
+  }
+}

@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title><%-process %> realtime</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+  <link rel="stylesheet" href="../style/style.css">
+</head>
+    <body>
+        <div class="container">
+            <div class="row">
+                <div class="col-md-4">
+                    <p><strong>Overall <%-process %> step yield loss</strong></p>
+                    <div class="overallYield"></div>
+                </div>
+                <div class="col-md-4">
+                    <p><strong>WIP</strong></p>
+                    <div class="wip"></div>
+                </div>
+                <div class="col-md-4">
+                    <p><strong>Actual Outs</strong></p>
+                    <div class="actualOuts"></div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-4">
+                    <p><strong>Tool Yield loss (%) </strong></p>
+                    <div class="svgYield"></div>
+                </div>
+                <div class="col-md-4">
+                    <p><strong>Top 5 <%- process %> scrap (qty)</strong></p>
+                    <div class="svgPie"></div>
+                </div>
+                    
+                <div class="col-md-4">
+                    <p><strong>Move per hour (<%- process %>)</strong></p>
+                    <div class="svgMoves"></div>
+                </div>
+            </div>
+        </div>
+        
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.3/socket.io.js"></script>
+        <script src="https://d3js.org/d3.v3.min.js"></script>
+        <script type="text/javascript" src="../d3tip/d3tip.js"></script>
+        <script>
+            $(function(){
+                var socket = io();
+                socket.emit('yield', {process_data: '<%- process %>'});
+                
+                
+
+                socket.on('yield_obj', function(try_obj, line_obj){
+                   // console.log(try_obj);
+                   // console.log(line_obj);
+                    $('.d3-tip').remove();
+                    $('.svgYield').empty();
+
+                    var margin = {top: 40, right: 20, bottom: 120, left: 40},
+                    width = 400 - margin.left - margin.right,
+                    height = 300 - margin.top - margin.bottom;
+                
+                var formatPercent = d3.format(".%");
+
+                var x = d3.scale.ordinal()
+                    .rangeRoundBands([0, width], .1, .3);
+                
+                var y = d3.scale.linear()
+                    .range([height, 0]);
+                
+                var xAxis = d3.svg.axis()
+                    .scale(x)
+                    .orient("bottom");
+                
+                var yAxis = d3.svg.axis()
+                    .scale(y)
+                    .orient("left")
+                    .tickFormat(formatPercent);
+                
+                var tip = d3.tip()
+                  .attr('class', 'd3-tip')
+                  .offset([-10, 0])
+                  .html(function(d) {
+                    
+                    return "<strong>Tool:</strong> <span style='color:red'>" + d.name + "</span><br/><strong>Yield Loss:</strong> <span style='color:red'>" + d.size + " %</span>";
+                  })
+                
+                var svg = d3.select(".svgYield").append("svg")
+                    .attr("width", width + margin.left + margin.right)
+                    .attr("height", height + margin.top + margin.bottom)
+                  .append("g")
+                    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+                
+                svg.call(tip);
+                
+                //d3.tsv("data.tsv", type, function(error, data) {
+                var barG = d3.tsv.parse(try_obj);
+                var lineG = d3.tsv.parse(line_obj);
+                
+                var data = [].concat.apply([], [barG, lineG]);
+
+                  x.domain(data.map(function(d) { return d.name; }));
+                  //x.domain();
+                  y.domain([0, d3.max(data, function(d) { return d.size; })]);
+
+                  var line = d3.svg.line()
+                    .x(function(d) { return x(d.name)+x.rangeBand()/2; })
+                    .y(function(d) { return y(d.size); });
+
+                  svg.append("g")
+                      .attr("class", "x axis")
+                      .attr("transform", "translate(0," + height + ")")
+                      .call(xAxis)
+                      .selectAll("text")	
+                        .style("text-anchor", "end")
+                        .attr("dx", "-.8em")
+                        .attr("dy", ".15em")
+                        .attr("transform", function(d) {
+                            return "rotate(-55)" 
+                            });
+                
+                  svg.append("g")
+                      .attr("class", "y axis")
+                      .call(yAxis)
+                    .append("text")
+                      .attr("transform", "rotate(-90)")
+                      .attr("y", 6)
+                      .attr("dy", ".71em")
+                      .style("text-anchor", "end")
+                      .text(" % Yield Loss");
+                
+                  svg.selectAll(".bar")
+                      .data(barG)
+                    .enter().append("rect")
+                      .attr("class", "bar")
+                      .attr("x", function(d) { return x(d.name); })
+                      .attr("width", x.rangeBand())
+                      .attr("y", function(d) { return y(d.size); })
+                      .attr("height", function(d) { return height - y(d.size); })
+                      .on('mouseover', tip.show)
+                      .on('mouseout', tip.hide)
+                
+
+                    svg.append("path")
+                        .datum(lineG)
+                        .attr("class", "lineStyle")
+                        .attr("d", line);
+                //});
+
+                    function wrap(text, width) {
+                        text.each(function() {
+                        var text = d3.select(this),
+                            words = text.text().split(/\s+/).reverse(),
+                            word,
+                            line = [],
+                            lineNumber = 0,
+                            lineHeight = 1.1, // ems
+                            y = text.attr("y"),
+                            dy = parseFloat(text.attr("dy")),
+                            tspan = text.text(null).append("tspan").attr("x", 0).attr("y", y).attr("dy", dy + "em");
+                            while (word = words.pop()) {
+                                line.push(word);
+                                tspan.text(line.join(" "));
+                                if (tspan.node().getComputedTextLength() > width) {
+                                    line.pop();
+                                    tspan.text(line.join(" "));
+                                    line = [word];
+                                    tspan = text.append("tspan").attr("x", 0).attr("y", y).attr("dy", ++lineNumber * lineHeight + dy + "em").text(word);
+                                }
+                            }
+                        });
+                    }
+                                    
+                function type(d) {
+                  d.size = +d.size;
+                  return d;
+                }
+
+                socket.emit('yield', {process_data: '<%- process %>'});
+                });
+            });
+        </script>
+        <script>
+            $(function(){
+                var socket = io();
+                socket.emit('moves', {process_data: '<%- process %>'});
+
+                socket.on('process_obj', function(process_obj){
+                 //   console.log(process_obj);
+                // moves
+                $('.svgMoves').empty();
+                // mouse over
+
+                                
+                var margin = {top: 20, right: 50, bottom: 30, left: 50},
+                    width = 400 - margin.left - margin.right,
+                    height = 200 - margin.top - margin.bottom;
+
+                var parseDate = d3.format("d"),
+                    bisectDate = d3.bisector(function(d) { return d.hour; }).left,
+                    formatValue = d3.format(""),
+                    formatCurrency = function(d) { return "" + formatValue(d); };
+
+                var x = d3.scale.linear()
+                    .range([0, width]);
+                   
+                var y = d3.scale.linear()
+                    .range([height, 0]);
+
+                var xAxis = d3.svg.axis()
+                    .scale(x)
+                    .orient("bottom");
+
+                var yAxis = d3.svg.axis()
+                    .scale(y)
+                    .orient("left")
+                    .ticks(5);
+
+                var line = d3.svg.line()
+                    .x(function(d) { return x(d.hour); })
+                    .y(function(d) { return y(d.moves); });
+
+                var svg = d3.select(".svgMoves").append("svg")
+                    .attr("width", width + margin.left + margin.right)
+                    .attr("height", height + margin.top + margin.bottom)
+                .append("g")
+                    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+               // d3.tsv("data.tsv", function(error, data) {
+               // if (error) throw error;
+
+                var data = d3.tsv.parse(process_obj);
+
+                data.forEach(function(d) {
+                    d.hour = +d.hour;
+                    d.moves = +d.moves;
+                });
+
+                data.sort(function(a, b) {
+                    return a.hour - b.hour;
+                });
+
+                x.domain([0, d3.max(data, function(d) { return d.hour; })]);
+                y.domain([0, d3.max(data, function(d) { return d.moves; })]);
+
+                svg.append("g")
+                    .attr("class", "x axis")
+                    .attr("transform", "translate(0," + height + ")")
+                    .call(xAxis);
+
+                svg.append("g")
+                    .attr("class", "y axis")
+                    .call(yAxis)
+                    .append("text")
+                    .attr("transform", "rotate(-90)")
+                    .attr("y", 6)
+                    .attr("dy", ".71em")
+                    .style("text-anchor", "end")
+                    .text("<%- process %> moves");
+
+                svg.append("path")
+                    .datum(data)
+                    .attr("class", "line")
+                    .attr("d", line);
+
+                var focus = svg.append("g")
+                    .attr("class", "focus")
+                    .style("display", "none");
+
+                focus.append("circle")
+                    .attr("r", 4.5);
+
+                focus.append("text")
+                    .attr("x", 9)
+                    .attr("dy", ".35em");
+
+                svg.append("rect")
+                    .attr("class", "overlay")
+                    .attr("width", width)
+                    .attr("height", height)
+                    .on("mouseover", function() { focus.style("display", null); })
+                    .on("mouseout", function() { focus.style("display", "none"); })
+                    .on("mousemove", mousemove);
+
+                function mousemove() {
+                    var x0 = x.invert(d3.mouse(this)[0]),
+                        i = bisectDate(data, x0, 1),
+                        d0 = data[i - 1],
+                        d1 = data[i],
+                        d = x0 - d0.hour > d1.hour - x0 ? d1 : d0;
+                    focus.attr("transform", "translate(" + x(d.hour) + "," + y(d.moves) + ")");
+                    focus.select("text").text(formatCurrency(d.moves));
+                }
+                //});
+                    socket.emit('moves', {process_data: '<%- process %>'});
+                });
+            });
+        </script>
+        <script>
+            $(function(){
+                var socket = io();
+
+                socket.emit('pie', {process_data: '<%- process %>'});
+
+                
+
+                socket.on('pie_obj', function(pie_obj){
+                 //   console.log(pie_obj);
+                    $('.svgPie').empty();
+
+                    var width = 400,
+                        height = 200,
+                        radius = Math.min(width, height) / 2;
+
+                    var color = d3.scale.ordinal()
+                        .range(["#3366cc", "#dc3912", "#ff9900", "#109618", "#990099", "#0099c6", "#dd4477", "#66aa00"]);
+
+                    var arc = d3.svg.arc()
+                        .outerRadius(radius - 10)
+                        .innerRadius(0);
+
+                    var labelArc = d3.svg.arc()
+                        .outerRadius(radius - 20)
+                        .innerRadius(radius - 20);
+
+                    var pie = d3.layout.pie()
+                        .sort(null)
+                        .value(function(d) { return d.scrap_qty; });
+
+                    var svg = d3.select(".svgPie").append("svg")
+                        .attr("width", width)
+                        .attr("height", height)
+                    .append("g")
+                        .attr("transform", "translate(" + width / 2 + "," + height / 2 + ")");
+
+                    //d3.csv("data.csv", type, function(error, data) {
+                    //if (error) throw error;
+
+                    var data = d3.tsv.parse(pie_obj);
+                    
+                   // console.log(pie(data))
+
+                    var g = svg.selectAll(".arc")
+                        .data(pie(data))
+                        .enter().append("g")
+                        .attr("class", "arc");
+
+                    g.append("path")
+                        .attr("d", arc)
+                        .style("fill", function(d) { return color(d.data.scrap_code); });
+
+                    g.append("text")
+                        .attr("transform", function(d) { return "translate(" + labelArc.centroid(d) + ")"; })
+                        .attr("dy", "1.5em")
+                        .text(function(d) { return d.data.scrap_code +'='+ d.data.scrap_qty; });
+                    //});
+
+                    function type(d) {
+                    d.scrap_qty = +d.scrap_qty;
+                    return d;
+                    }
+
+
+
+                    socket.emit('pie', {process_data: '<%- process %>'});
+                });
+            });
+        </script>
+        <script>
+            $(function(){
+                var socket = io();
+                socket.emit('yieldloss', {process_data: '<%- process %>'});
+
+                socket.on('overall_yield', function(overall_yield){
+
+                    $('.overallYield').empty();
+
+                    var format = d3.format(",.2%");
+
+                    d3.select(".overallYield").append("h1").transition().duration(1500).delay(0)
+                    .tween("text", function(d) {
+                      //var i = d3.interpolate(0, overall_yield);
+                      var i = d3.interpolate(overall_yield, overall_yield);
+                      return function(t) {
+                        d3.select(this).text(format(i(t)));
+                      };
+                    });
+
+                socket.emit('yieldloss', {process_data: '<%- process %>'});
+                });
+            });
+        </script>
+
+    </body>
+</html>
