@@ -93,3 +93,89 @@ stroke-width: 1.5px;
     stroke: orange;
     stroke-width: 3px;
   }
+
+  body {
+    font: 12px sans-serif;
+    padding: 50px;
+  }
+  
+  svg {
+    background-color: rgb(255, 255, 255);
+  }
+  
+  svg rect:hover {
+    opacity: .7;
+  }
+  
+  svg g {
+    fill: #ACACAC;
+  }
+  
+  svg g text.label,
+  svg g text.ylabel {
+    fill: #2A2A2A;
+  }
+  
+  svg {
+    background-color: #fff;
+  }
+  
+  #form {
+        position: relative;
+        right: 10px;
+        top: 10px;
+        padding-bottom: 20px;
+  }
+  
+  .axis path,
+  .axis line {
+    fill: none;
+    stroke: #000;
+    shape-rendering: crispEdges;
+  }
+  
+  .line {
+    stroke: #FF9900;
+    fill: none;
+    stroke-opacity: 25%;
+    stroke-width: 1px;
+  }
+  
+  .unfocused {
+    stroke-opacity: 25%;
+  }
+  
+  .focused {
+    stroke-width: 2px;
+    stroke-opacity: 100%;
+  }
+  
+  
+  .bar {
+    fill: steelblue;
+  }
+  
+  .x.axis path {
+    /*display: none;*/
+  }
+  
+  
+  .tooltip {
+    position: absolute;
+    z-index: 10;
+    opacity: 1;
+  }
+  
+  
+  .tooltip p {
+    background-color: #fff;
+    padding: .5em 1em;
+    font-size: 12px;
+    line-height: 17px;
+    color: black;
+  }
+  
+  .tooltipHeader {
+    font-weight: 700;
+    font-size: 12.5px;
+  }

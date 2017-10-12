@@ -13,12 +13,12 @@
         <div class="container">
             <div class="row">
                 <div class="col-md-4">
-                    <p><strong>Overall <%-process %> step yield loss</strong></p>
+                    <p><strong>Step yield loss (<%-process %>)</strong></p>
                     <div class="overallYield"></div>
                 </div>
                 <div class="col-md-4">
-                    <p><strong>WIP</strong></p>
-                    <div class="wip"></div>
+                    <p><strong>OEE</strong></p>
+                    <div class="oee"></div>
                 </div>
                 <div class="col-md-4">
                     <p><strong>Actual Outs</strong></p>
@@ -44,6 +44,7 @@
         
         <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.3/socket.io.js"></script>
         <script src="https://d3js.org/d3.v3.min.js"></script>
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js"></script>
         <script type="text/javascript" src="../d3tip/d3tip.js"></script>
         <script>
             $(function(){
@@ -392,6 +393,252 @@
                 });
             });
         </script>
+        <script>
+            $(function(){
+                var socket = io();
+                socket.emit('oee', {process_data: '<%- process %>'});
+
+                socket.on('toolStat_obj', function(toolStat_obj){
+
+                    $('.oee').empty();
+                    $('.tooltip').remove();
+
+                    console.log(toolStat_obj);
+
+                    var marginStacked = {top: 20, right: 120, bottom: 100, left: 40},
+                    widthStacked = 400 - marginStacked.left - marginStacked.right,
+                    heightStacked = 350 - marginStacked.top - marginStacked.bottom;
+                
+                
+                
+                var xScale = d3.scale.ordinal()
+                    .rangeRoundBands([0, heightStacked], .3);
+                
+                var yScale = d3.scale.linear()
+                    .rangeRound([heightStacked, 0]);
+                
+                
+                var color = d3.scale.ordinal().range(["#a3ec01","#FFA500","pink","#fb2b2b", "#3b5998", "yellow"]);
+                
+                var xAxis = d3.svg.axis()
+                    .scale(xScale)
+                    .orient("bottom")
+                    .innerTickSize([0]);
+                
+                var yAxis = d3.svg.axis()
+                    .scale(yScale)
+                    .orient("left")
+                    .tickFormat(d3.format(".2s")); // for the stacked totals version
+                
+                var stack = d3.layout
+                    .stack(); // default view is "zero" for the count display.
+                
+                var svg = d3.select(".oee").append("svg")
+                    .attr("width", widthStacked + marginStacked.left + marginStacked.right)
+                    .attr("height", heightStacked + marginStacked.top + marginStacked.bottom)
+                  .append("g")
+                    .attr("transform", "translate(" + marginStacked.left + "," + marginStacked.top + ")");
+                
+                var tooltip = d3.select("body")
+                                .append("div")
+                                .attr("class", "tooltip");
+                
+                var percentClicked = true;
+                
+                //d3.csv("segments_table.csv", function(error, data) {
+                var data = d3.tsv.parse(toolStat_obj);
+
+                  data.sort(function(a,b) { return +a.total - +b.total;});
+                
+                  var segmentsStacked = ["PRODUCTIVE","SETUP","SCHEDULED_DT","UNSCHEDULED_DT","ENGINEERING","STANDBY"];
+                
+                  var stacked = stack(makeData(segmentsStacked, data));
+                
+                  xScale.domain(data.map(function(d) { return d.eq_name; }));
+                
+                  svg.append("g")
+                      .attr("class", "x axis")
+                      .attr("transform", "translate(0," + heightStacked + ")")
+                      .call(xAxis)
+                      .selectAll("text")
+                        .attr("dx", "-.8em")
+                        .attr("dy", ".15em")
+                        .attr("transform", function(d) {
+                            return "rotate(-55)" 
+                            })
+                        .style("text-anchor", "end");
+                
+                  svg.append("g")
+                      .attr("class", "y axis")
+                      .call(yAxis)
+                      .append("text")
+                      .attr("transform", "rotate(-90)")
+                      .attr("y", 6)
+                      .attr("dy", ".71em")
+                      .style("text-anchor", "end")
+                      .text("");
+                
+                  var eq_name = svg.selectAll(".eq_name")
+                      .data(stacked)
+                    .enter().append("g")
+                      .attr("class", "eq_name")
+                      .style("fill", function(d, i) { return color(i); });
+                
+                
+                  var rectangles = eq_name.selectAll("rect")
+                      .data(function(d) {
+                        // console.log("array for a rectangle");
+                        return d; })  // this just gets the array for bar segment.
+                    .enter().append("rect")
+                        .attr("width", xScale.rangeBand());
+                
+                    // this just draws them in the default way, now they're appended.
+                  transitionPercent();
+                
+                  drawLegend();
+                
+                  d3.selectAll("input").on("change", handleFormClick);
+                
+                  // All the functions for stuff above!
+                
+                  function handleFormClick() {
+                    if (this.value === "bypercent") {
+                      percentClicked = true;
+                      transitionPercent();
+                    } else {
+                      percentClicked = false;
+                      transitionCount();
+                    }
+                  }
+                
+                
+                  function makeData(segmentsStacked, data) {
+                    return segmentsStacked.map(function(component) {
+                        return data.map(function(d) {
+                          return {x: d["eq_name"], y: +d[component], component: component};
+                        })
+                      });
+                  }
+                
+                
+                  function transitionPercent() {
+                
+                    yAxis.tickFormat(d3.format("%"));
+                    stack.offset("expand");  // use this to get it to be relative/normalized!
+                    var stacked = stack(makeData(segmentsStacked, data));
+                    // call function to do the bars, which is same across both formats.
+                    transitionRects(stacked);
+                  }
+                
+                  function transitionCount() {
+                
+                    yAxis.tickFormat(d3.format(".2s")); // for the stacked totals version
+                    stack.offset("zero");
+                    var stacked = stack(makeData(segmentsStacked, data));
+                    transitionRects(stacked);
+                
+                    }
+                
+                  function transitionRects(stacked) {
+                
+                    // this domain is using the last of the stacked arrays, which is the last illness, and getting the max height.
+                    yScale.domain([0, d3.max(stacked[stacked.length-1], function(d) { return d.y0 + d.y; })]);
+                
+                    // attach new fixed data
+                    var eq_name = svg.selectAll(".eq_name")
+                      .data(stacked);
+                
+                    // same on the rects
+                    eq_name.selectAll("rect")
+                      .data(function(d) {
+                        console.log("array for a rectangle");
+                        return d;
+                      })  // this just gets the array for bar segment.
+                
+                    svg.selectAll("g.eq_name rect")
+                      .transition()
+                      .duration(250)
+                      .attr("x", function(d) {
+                        return xScale(d.x); })
+                      .attr("y", function(d) {
+                        return yScale(d.y0 + d.y); }) //
+                      .attr("height", function(d) {
+                        return yScale(d.y0) - yScale(d.y0 + d.y); });  // height is base - tallness
+                
+                    svg.selectAll(".y.axis").transition().call(yAxis);
+                  }
+                // =====================================================================
+                // Building a legend by hand, based on http://bl.ocks.org/mbostock/3886208
+                // ===================================================================
+                
+                  function drawLegend() {
+                    var labels = ["PRODUCTIVE","SETUP", "SCHEDULED","UNSCHEDULED","ENGINEERING","STANDBY"];
+                    var legend = svg.selectAll(".legend")
+                        .data(color.domain().slice()) // what do you think this does?
+                      .enter().append("g")
+                        .attr("class", "legend")
+                        .attr("transform", function(d, i) { return "translate(0," + Math.abs((i-8) * 20) + ")"; });
+                        // Added the absolute value and transition. I reversed the names, so that I can continue to use category20(), but have health as green to make it stand out.
+                
+                    legend.append("rect")
+                        .attr("x", widthStacked)
+                        .attr("width", 18)
+                        .attr("height", 18)
+                        .style("fill", color);
+                
+                    legend.append("text")
+                        .attr("x", widthStacked + 24)
+                        .attr("y", 9)
+                        .attr("dy", ".35em")
+                        .style("text-anchor", "start")
+                        .text(function(d, i) { return labels[i]; });
+                  }
+                
+                // ================================================================
+                // Mouse Events
+                // ================================================================
+                
+                    rectangles
+                        .on("mouseover", mouseoverFunc)
+                        .on("mousemove", mousemoveFunc)
+                        .on("mouseout", mouseoutFunc);
+                
+                
+                    function mouseoverFunc(d) {
+                
+                
+                      console.log("moused over", d.x);
+                        if(percentClicked) {
+                          tooltip
+                            .style("display", null)
+                            .html("<p><span class='tooltipHeader'>" + d3.format("%")(d.y) + "</p>");
+                            // .html("<p><span class='tooltipHeader'>" + d.x + "</span><br>"+ d.component + ": " + d3.format("%")(d.y) + "</p>");
+                        } else {
+                              console.log("segmentsStacked", d.component, "percent", d.y);
+                
+                              tooltip
+                                .style("display", null)
+                                .html("<p><span class='tooltipHeader'>" +d.y + "</p>");
+                                // .html("<p><span class='tooltipHeader'>" + d.x + "</span><br>"+ d.component + ": " +d.y + "</p>");
+                        }
+                    }
+                
+                    function mousemoveFunc(d) {
+                        tooltip
+                            .style("top", (d3.event.pageY - 5) + "px")
+                            .style("left", (d3.event.pageX + 10) + "px");
+                    }
+                
+                    function mouseoutFunc(d) {
+                        return tooltip.style("display", "none"); // this sets it to invisible!
+                    }
+                //});
+
+                socket.emit('oee', {process_data: '<%- process %>'});
+                });
+            });
+        </script>
+
 
     </body>
 </html>
