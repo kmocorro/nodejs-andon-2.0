@@ -403,7 +403,8 @@
                     $('.oee').empty();
                     $('.tooltip').remove();
 
-                    console.log(toolStat_obj);
+                  //  console.log(toolStat_obj);
+                  
 
                     var marginStacked = {top: 20, right: 120, bottom: 100, left: 40},
                     widthStacked = 400 - marginStacked.left - marginStacked.right,
@@ -418,7 +419,7 @@
                     .rangeRound([heightStacked, 0]);
                 
                 
-                var color = d3.scale.ordinal().range(["#a3ec01","#FFA500","pink","#fb2b2b", "#3b5998", "yellow"]);
+                var color = d3.scale.ordinal().range(["#a3ec01","yellow","#FFA500", "#fb2b2b", "#3b5998", "blue","black"]);
                 
                 var xAxis = d3.svg.axis()
                     .scale(xScale)
@@ -450,7 +451,7 @@
 
                   data.sort(function(a,b) { return +a.total - +b.total;});
                 
-                  var segmentsStacked = ["PRODUCTIVE","SETUP","SCHEDULED_DT","UNSCHEDULED_DT","ENGINEERING","STANDBY"];
+                  var segmentsStacked = ["PRODUCTIVE","STANDBY", "SETUP", "SCHEDULED_DT", "UNSCHEDULED_DT","ENGINEERING"];
                 
                   var stacked = stack(makeData(segmentsStacked, data));
                 
@@ -551,7 +552,7 @@
                     // same on the rects
                     eq_name.selectAll("rect")
                       .data(function(d) {
-                        console.log("array for a rectangle");
+                      //  console.log("array for a rectangle");
                         return d;
                       })  // this just gets the array for bar segment.
                 
@@ -572,7 +573,7 @@
                 // ===================================================================
                 
                   function drawLegend() {
-                    var labels = ["PRODUCTIVE","SETUP", "SCHEDULED","UNSCHEDULED","ENGINEERING","STANDBY"];
+                    var labels = ["PRODUCTIVE","STANDBY", "SETUP","SCHEDULED","UNSCHEDULED","ENGINEERING", "OEE"];
                     var legend = svg.selectAll(".legend")
                         .data(color.domain().slice()) // what do you think this does?
                       .enter().append("g")
@@ -607,14 +608,14 @@
                     function mouseoverFunc(d) {
                 
                 
-                      console.log("moused over", d.x);
+                    //  console.log("moused over", d.x);
                         if(percentClicked) {
                           tooltip
                             .style("display", null)
                             .html("<p><span class='tooltipHeader'>" + d3.format("%")(d.y) + "</p>");
                             // .html("<p><span class='tooltipHeader'>" + d.x + "</span><br>"+ d.component + ": " + d3.format("%")(d.y) + "</p>");
                         } else {
-                              console.log("segmentsStacked", d.component, "percent", d.y);
+                         //     console.log("segmentsStacked", d.component, "percent", d.y);
                 
                               tooltip
                                 .style("display", null)
