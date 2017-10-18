@@ -12,7 +12,7 @@ shape-rendering: crispEdges;
 }
 .line {
     fill: none;
-    stroke: steelblue;
+    stroke: #058dc7;
     stroke-width: 3px;
 }
 .overlay {
@@ -21,10 +21,10 @@ shape-rendering: crispEdges;
 }
 .focus circle {
     fill: orange;
-    stroke: steelblue;
+    stroke: #058dc7;
 }
 .bar {
-    fill: steelblue;
+    fill: #058dc7;
   }
 .bar:hover {
 fill: orange;
@@ -50,6 +50,7 @@ fill: none;
 stroke: #9ecae1;
 stroke-width: 1.5px;
 }
+
 .d3-tip {
     line-height: 1;
     font-weight: bold;
@@ -78,6 +79,64 @@ stroke-width: 1.5px;
     top: 100%;
     left: 0;
   }
+
+  .scrap-d3-tip {
+    line-height: 1;
+    font-weight: bold;
+    padding: 12px;
+    background: rgba(0, 0, 0, 0.8);
+    color: #fff;
+    border-radius: 2px;
+  }
+  
+  /* Creates a small triangle extender for the tooltip */
+  .scrap-d3-tip:after {
+    box-sizing: border-box;
+    display: inline;
+    font-size: 10px;
+    width: 100%;
+    line-height: 1;
+    color: rgba(0, 0, 0, 0.8);
+    content: "\25BC";
+    position: absolute;
+    text-align: center;
+  }
+  
+  /* Style northward tooltips differently */
+  .scrap-d3-tip.n:after {
+    margin: -1px 0 0 0;
+    top: 100%;
+    left: 0;
+  }
+
+  .oee-d3-tip {
+    line-height: 1;
+    font-weight: bold;
+    padding: 12px;
+    background: rgba(0, 0, 0, 0.8);
+    color: #fff;
+    border-radius: 2px;
+  }
+  
+  /* Creates a small triangle extender for the tooltip */
+  .oee-d3-tip:after {
+    box-sizing: border-box;
+    display: inline;
+    font-size: 10px;
+    width: 100%;
+    line-height: 1;
+    color: rgba(0, 0, 0, 0.8);
+    content: "\25BC";
+    position: absolute;
+    text-align: center;
+  }
+  
+  /* Style northward tooltips differently */
+  .oee-d3-tip.n:after {
+    margin: -1px 0 0 0;
+    top: 100%;
+    left: 0;
+  }
   
   
   .arc text {
@@ -90,17 +149,31 @@ stroke-width: 1.5px;
   }
   .lineStyle {
     fill: none;
-    stroke: black;
-    stroke-width: 3px;
+    stroke: orangered;
+    stroke-width: 1.75px;
   }
+
+  .oeelineStyle {
+    fill: none;
+    stroke: orangered;
+    stroke-width: 1.75px;
+  }
+
 
   body {
     font: 12px sans-serif;
-    padding: 50px;
+    padding: 20px;
+    background-color: #f5f7fa;
   }
   
   svg {
-    background-color: rgb(255, 255, 255);
+    min-height: 1.5rem;
+    padding: 0;
+    margin-bottom: 1.5rem;
+    border-radius: 6px;
+    background-color: #FFFFFF;
+    border: 1px solid #CBD2D6;
+    border-radius: 6px;
   }
   
   svg rect:hover {
@@ -138,7 +211,7 @@ stroke-width: 1.5px;
     stroke: #FF9900;
     fill: none;
     stroke-opacity: 25%;
-    stroke-width: 1px;
+    stroke-width: 1.75px;
   }
   
   .unfocused {
@@ -152,7 +225,7 @@ stroke-width: 1.5px;
   
   
   .bar {
-    fill: steelblue;
+    fill: #058dc7;
   }
   
   .x.axis path {
@@ -179,3 +252,18 @@ stroke-width: 1.5px;
     font-weight: 700;
     font-size: 12.5px;
   }
+
+  .svg-container {
+    display: inline-block;
+    position: relative;
+    width: 100%;
+    padding-bottom: 100%; /* aspect ratio */
+    vertical-align: top;
+    overflow: hidden;
+}
+.svg-content-responsive {
+    display: inline-block;
+    position: absolute;
+    top: 10px;
+    left: 0;
+}

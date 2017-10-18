@@ -10,42 +10,40 @@
   <link rel="stylesheet" href="../style/style.css">
 </head>
     <body>
-        <div class="container">
+
+        <div class="container-fluid">
             <div class="row">
                 <div class="col-md-4">
-                    <p><strong>Step yield loss (<%-process %>)</strong></p>
-                    <div class="overallYield"></div>
+                    <div class="overallYield" style="font-weight:700;"></div>
+                    <div class="svgYield"></div>
                 </div>
                 <div class="col-md-4">
                     <p><strong>OEE</strong></p>
                     <div class="oee"></div>
                 </div>
                 <div class="col-md-4">
-                    <p><strong>Actual Outs</strong></p>
-                    <div class="actualOuts"></div>
+                    <p><strong>Tool Status</strong></p>
+                    <div class="status"></div>
                 </div>
             </div>
             <div class="row">
-                <div class="col-md-4">
-                    <p><strong>Tool Yield loss (%) </strong></p>
-                    <div class="svgYield"></div>
-                </div>
-                <div class="col-md-4">
-                    <p><strong>Top 5 <%- process %> scrap (qty)</strong></p>
-                    <div class="svgPie"></div>
-                </div>
-                    
-                <div class="col-md-4">
+                <div class="col-md-8">
                     <p><strong>Move per hour (<%- process %>)</strong></p>
                     <div class="svgMoves"></div>
                 </div>
+                <div class="col-md-4">
+                    <p><strong>Scrap DPPM (<%- process %>) </strong></p>
+                    <div class="scrap"></div>
+                </div>
             </div>
-        </div>
+        </div>    
+    
         
         <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.3/socket.io.js"></script>
         <script src="https://d3js.org/d3.v3.min.js"></script>
         <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js"></script>
         <script type="text/javascript" src="../d3tip/d3tip.js"></script>
+        <!-- YIELD LOSS PER TOOL -->
         <script>
             $(function(){
                 var socket = io();
@@ -59,9 +57,9 @@
                     $('.d3-tip').remove();
                     $('.svgYield').empty();
 
-                    var margin = {top: 40, right: 20, bottom: 120, left: 40},
+                    var margin = {top: 40, right: 20, bottom: 150, left: 40},
                     width = 400 - margin.left - margin.right,
-                    height = 300 - margin.top - margin.bottom;
+                    height = 350 - margin.top - margin.bottom;
                 
                 var formatPercent = d3.format(".%");
 
@@ -119,7 +117,7 @@
                         .attr("dx", "-.8em")
                         .attr("dy", ".15em")
                         .attr("transform", function(d) {
-                            return "rotate(-55)" 
+                            return "rotate(-90)" 
                             });
                 
                   svg.append("g")
@@ -183,6 +181,7 @@
                 });
             });
         </script>
+        <!-- MOVES -->
         <script>
             $(function(){
                 var socket = io();
@@ -196,8 +195,8 @@
 
                                 
                 var margin = {top: 20, right: 50, bottom: 30, left: 50},
-                    width = 400 - margin.left - margin.right,
-                    height = 200 - margin.top - margin.bottom;
+                    width = 835 - margin.left - margin.right,
+                    height = 250 - margin.top - margin.bottom;
 
                 var parseDate = d3.format("d"),
                     bisectDate = d3.bisector(function(d) { return d.hour; }).left,
@@ -235,6 +234,7 @@
                 var data = d3.tsv.parse(process_obj);
 
                 data.forEach(function(d) {
+                    //d.hour = +d.hour;
                     d.hour = +d.hour;
                     d.moves = +d.moves;
                 });
@@ -243,7 +243,7 @@
                     return a.hour - b.hour;
                 });
 
-                x.domain([0, d3.max(data, function(d) { return d.hour; })]);
+                x.domain([0, 24]);
                 y.domain([0, d3.max(data, function(d) { return d.moves; })]);
 
                 svg.append("g")
@@ -299,76 +299,146 @@
                 });
             });
         </script>
+
+        <!-- TOP 10 Scrap -->
         <script>
             $(function(){
                 var socket = io();
+                    socket.emit('scrap', {process_data: '<%- process %>'});
 
-                socket.emit('pie', {process_data: '<%- process %>'});
+                        socket.on('scrapDPPM_obj', function(scrapDPPM_obj){
 
-                
+                            $('.scrap').empty();
+                            $('.scrap-d3-tip').remove();
+               
 
-                socket.on('pie_obj', function(pie_obj){
-                 //   console.log(pie_obj);
-                    $('.svgPie').empty();
+                            var margin = {top: 40, right: 20, bottom: 80, left: 40},
+                                width = 400 - margin.left - margin.right,
+                                height = 250 - margin.top - margin.bottom;
+                            
+                            var formatPercent = d3.format("");
 
-                    var width = 400,
-                        height = 200,
-                        radius = Math.min(width, height) / 2;
+                            var x = d3.scale.ordinal()
+                                .rangeRoundBands([0, width], .1, .3);
+                            
+                            var y = d3.scale.linear()
+                                .range([height, 0]);
+                            
+                            var xAxis = d3.svg.axis()
+                                .scale(x)
+                                .orient("bottom");
+                            
+                            var yAxis = d3.svg.axis()
+                                .scale(y)
+                                .orient("left")
+                                .ticks(7)
+                                .tickFormat(formatPercent);
+                            
+                            var tip = d3.tip()
+                            .attr('class', 'scrap-d3-tip')
+                            .offset([-10, 0])
+                            .html(function(d) {
+                                
+                                return "<strong>Scrap code:</strong> <span style='color:red'>" + d.scrap_code + "</span><br/><strong>Scrap DPPM: </strong> <span style='color:red'>" + d.scrap_qty + " </span>";
+                            })
+                            
+                            var svg = d3.select(".scrap").append("svg")
+                                .attr("width", width + margin.left + margin.right)
+                                .attr("height", height + margin.top + margin.bottom)
+                            .append("g")
+                                .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+                            
+                            svg.call(tip);
+                            
+                            //d3.tsv("data.tsv", type, function(error, data) {
+                            var data = d3.tsv.parse(scrapDPPM_obj);
 
-                    var color = d3.scale.ordinal()
-                        .range(["#3366cc", "#dc3912", "#ff9900", "#109618", "#990099", "#0099c6", "#dd4477", "#66aa00"]);
+                            data.forEach(function(d) {
+                                d.scrap_code = d.scrap_code;
+                                d.scrap_qty = +d.scrap_qty;
+                            });
+                            
+                            x.domain(data.map(function(d) { return d.scrap_code; }));
+                            //x.domain();
+                            y.domain([0, d3.max(data, function(d) { return d.scrap_qty; })]);
 
-                    var arc = d3.svg.arc()
-                        .outerRadius(radius - 10)
-                        .innerRadius(0);
+                            //console.log(d3.max(data, function(d) { return d.scrap_qty; }));
+                            
+                            svg.append("g")
+                                .attr("class", "x axis")
+                                .attr("transform", "translate(0," + height + ")")
+                                .call(xAxis)
+                                .selectAll("text")	
+                                    .style("text-anchor", "end")
+                                    .attr("dx", "-.8em")
+                                    .attr("dy", ".15em")
+                                    .attr("transform", function(d) {
+                                        return "rotate(-90)" 
+                                        });
+                            
+                            svg.append("g")
+                                .attr("class", "y axis")
+                                .call(yAxis)
+                                .append("text")
+                                .attr("transform", "rotate(-90)")
+                                .attr("y", 6)
+                                .attr("dy", ".71em")
+                                .style("text-anchor", "end")
+                                .text(" DPPM");
+                            
+                            svg.selectAll(".bar")
+                                .data(data)
+                                .enter().append("rect")
+                                .attr("class", "bar")
+                                .attr("x", function(d) { return x(d.scrap_code); })
+                                .attr("width", x.rangeBand())
+                                .attr("y", function(d) { return y(d.scrap_qty); })
+                                .attr("height", function(d) { return height - y(d.scrap_qty); })
+                                .on('mouseover', tip.show)
+                                .on('mouseout', tip.hide)
+                            
 
-                    var labelArc = d3.svg.arc()
-                        .outerRadius(radius - 20)
-                        .innerRadius(radius - 20);
+                            //});
 
-                    var pie = d3.layout.pie()
-                        .sort(null)
-                        .value(function(d) { return d.scrap_qty; });
+                                function wrap(text, width) {
+                                    text.each(function() {
+                                    var text = d3.select(this),
+                                        words = text.text().split(/\s+/).reverse(),
+                                        word,
+                                        line = [],
+                                        lineNumber = 0,
+                                        lineHeight = 1.1, // ems
+                                        y = text.attr("y"),
+                                        dy = parseFloat(text.attr("dy")),
+                                        tspan = text.text(null).append("tspan").attr("x", 0).attr("y", y).attr("dy", dy + "em");
+                                        while (word = words.pop()) {
+                                            line.push(word);
+                                            tspan.text(line.join(" "));
+                                            if (tspan.node().getComputedTextLength() > width) {
+                                                line.pop();
+                                                tspan.text(line.join(" "));
+                                                line = [word];
+                                                tspan = text.append("tspan").attr("x", 0).attr("y", y).attr("dy", ++lineNumber * lineHeight + dy + "em").text(word);
+                                            }
+                                        }
+                                    });
+                                }
+                                                
+                            function type(d) {
+                            d.scrap_qty = +d.scrap_qty;
+                            return d;
+                            }
+                            
 
-                    var svg = d3.select(".svgPie").append("svg")
-                        .attr("width", width)
-                        .attr("height", height)
-                    .append("g")
-                        .attr("transform", "translate(" + width / 2 + "," + height / 2 + ")");
-
-                    //d3.csv("data.csv", type, function(error, data) {
-                    //if (error) throw error;
-
-                    var data = d3.tsv.parse(pie_obj);
-                    
-                   // console.log(pie(data))
-
-                    var g = svg.selectAll(".arc")
-                        .data(pie(data))
-                        .enter().append("g")
-                        .attr("class", "arc");
-
-                    g.append("path")
-                        .attr("d", arc)
-                        .style("fill", function(d) { return color(d.data.scrap_code); });
-
-                    g.append("text")
-                        .attr("transform", function(d) { return "translate(" + labelArc.centroid(d) + ")"; })
-                        .attr("dy", "1.5em")
-                        .text(function(d) { return d.data.scrap_code +'='+ d.data.scrap_qty; });
-                    //});
-
-                    function type(d) {
-                    d.scrap_qty = +d.scrap_qty;
-                    return d;
-                    }
+                        
+                            socket.emit('scrap', {process_data: '<%- process %>'});
+                        });
 
 
-
-                    socket.emit('pie', {process_data: '<%- process %>'});
-                });
             });
         </script>
+
+        <!-- YIELD LOSS OVERALL -->
         <script>
             $(function(){
                 var socket = io();
@@ -380,12 +450,12 @@
 
                     var format = d3.format(",.2%");
 
-                    d3.select(".overallYield").append("h1").transition().duration(1500).delay(0)
+                    d3.select(".overallYield").append("p").transition().duration(1500).delay(0)
                     .tween("text", function(d) {
                       //var i = d3.interpolate(0, overall_yield);
                       var i = d3.interpolate(overall_yield, overall_yield);
                       return function(t) {
-                        d3.select(this).text(format(i(t)));
+                        d3.select(this).text("Overall Yield Loss:   " + format(i(t)));
                       };
                     });
 
@@ -393,27 +463,29 @@
                 });
             });
         </script>
+
+        <!-- STATUS -->
         <script>
             $(function(){
                 var socket = io();
-                socket.emit('oee', {process_data: '<%- process %>'});
+                socket.emit('status', {process_data: '<%- process %>'});
 
                 socket.on('toolStat_obj', function(toolStat_obj){
 
-                    $('.oee').empty();
+                    $('.status').empty();
                     $('.tooltip').remove();
 
                   //  console.log(toolStat_obj);
                   
 
-                    var marginStacked = {top: 20, right: 120, bottom: 100, left: 40},
+                    var marginStacked = {top: 20, right: 150, bottom: 150, left: 40},
                     widthStacked = 400 - marginStacked.left - marginStacked.right,
                     heightStacked = 350 - marginStacked.top - marginStacked.bottom;
                 
                 
                 
                 var xScale = d3.scale.ordinal()
-                    .rangeRoundBands([0, heightStacked], .3);
+                    .rangeRoundBands([0, heightStacked], .1);
                 
                 var yScale = d3.scale.linear()
                     .rangeRound([heightStacked, 0]);
@@ -434,7 +506,7 @@
                 var stack = d3.layout
                     .stack(); // default view is "zero" for the count display.
                 
-                var svg = d3.select(".oee").append("svg")
+                var svg = d3.select(".status").append("svg")
                     .attr("width", widthStacked + marginStacked.left + marginStacked.right)
                     .attr("height", heightStacked + marginStacked.top + marginStacked.bottom)
                   .append("g")
@@ -465,7 +537,7 @@
                         .attr("dx", "-.8em")
                         .attr("dy", ".15em")
                         .attr("transform", function(d) {
-                            return "rotate(-55)" 
+                            return "rotate(-90)" 
                             })
                         .style("text-anchor", "end");
                 
@@ -612,7 +684,7 @@
                         if(percentClicked) {
                           tooltip
                             .style("display", null)
-                            .html("<p><span class='tooltipHeader'>" + d3.format("%")(d.y) + "</p>");
+                            .html("<p><span class='tooltipHeader'> " + d.component + ": " + d3.format("%")(d.y) + "</p>");
                             // .html("<p><span class='tooltipHeader'>" + d.x + "</span><br>"+ d.component + ": " + d3.format("%")(d.y) + "</p>");
                         } else {
                          //     console.log("segmentsStacked", d.component, "percent", d.y);
@@ -635,11 +707,157 @@
                     }
                 //});
 
-                socket.emit('oee', {process_data: '<%- process %>'});
+                socket.emit('status', {process_data: '<%- process %>'});
                 });
             });
         </script>
 
+        <!-- OEE -->
+        <script>
+            $(function(){
+                var socket = io();
+                socket.emit('oee', {process_data: '<%- process %>'});
+
+                    socket.on('oee_obj', function(oee_obj, oeeTarget_obj){
+                        
+                        $('.oee-d3-tip').remove();
+                        $('.oee').empty();
+
+                        var margin = {top: 40, right: 20, bottom: 150, left: 40},
+                            width = 400 - margin.left - margin.right,
+                            height = 350 - margin.top - margin.bottom;
+                        
+                        var formatPercent = d3.format(".%");
+
+                        var x = d3.scale.ordinal()
+                            .rangeRoundBands([0, width], .1, .3);
+                        
+                        var y = d3.scale.linear()
+                            .range([height, 0]);
+                        
+                        var xAxis = d3.svg.axis()
+                            .scale(x)
+                            .orient("bottom");
+                        
+                        var yAxis = d3.svg.axis()
+                            .scale(y)
+                            .orient("left")
+                            .tickFormat(formatPercent);
+                        
+                        var tip = d3.tip()
+                        .attr('class', 'oee-d3-tip')
+                        .offset([-10, 0])
+                        .html(function(d) {
+                            
+                            return "<strong>Tool:</strong> <span style='color:#a5ed00'>" + d.eq_name + "</span><br/><strong>OEE:</strong> <span style='color:orange'>" + d.oee + " %</span>";
+                        })
+                        
+                        var svg = d3.select(".oee").append("svg")
+                            .attr("width", width + margin.left + margin.right)
+                            .attr("height", height + margin.top + margin.bottom)
+                        .append("g")
+                            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+                        
+                        svg.call(tip);
+                        
+                        //d3.tsv("data.tsv", type, function(error, data) {
+                        var oee_obj = d3.tsv.parse(oee_obj);
+                        var oeeTarget_obj = d3.tsv.parse(oeeTarget_obj);
+                        
+                        var data = [].concat.apply([], [oee_obj, oeeTarget_obj]);
+
+                        data.forEach(function(d) {
+                            d.eq_name = d.eq_name;
+                            d.oee = +d.oee;
+                        });
+
+                        x.domain(data.map(function(d) { return d.eq_name; }));
+                        //x.domain();
+                        y.domain([0, 100]);
+
+                        var line = d3.svg.line()
+                            .x(function(d) { return x(d.eq_name)+x.rangeBand()/2; })
+                            .y(function(d) { return y(d.oee); });
+
+                        svg.append("g")
+                            .attr("class", "x axis")
+                            .attr("transform", "translate(0," + height + ")")
+                            .call(xAxis)
+                            .selectAll("text")	
+                                .style("text-anchor", "end")
+                                .attr("dx", "-.8em")
+                                .attr("dy", ".15em")
+                                .attr("transform", function(d) {
+                                    return "rotate(-90)" 
+                                    });
+                        
+                        svg.append("g")
+                            .attr("class", "y axis")
+                            .call(yAxis)
+                            .append("text")
+                            .attr("transform", "rotate(-90)")
+                            .attr("y", 6)
+                            .attr("dy", ".71em")
+                            .style("text-anchor", "end")
+                            .text(" % Current OEE (today)");
+                        
+                        svg.selectAll(".bar")
+                            .data(oee_obj)
+                            .enter().append("rect")
+                            .attr("class", "bar")
+                            .attr("x", function(d) { return x(d.eq_name); })
+                            .attr("width", x.rangeBand())
+                            .attr("y", function(d) { return y(d.oee); })
+                            .attr("height", function(d) { return height - y(d.oee); })
+                            .on('mouseover', tip.show)
+                            .on('mouseout', tip.hide)
+                        
+
+                            svg.append("path")
+                                .datum(oeeTarget_obj)
+                                .attr("class", "oeelineStyle")
+                                .attr("d", line);
+                        //});
+
+                            function wrap(text, width) {
+                                text.each(function() {
+                                var text = d3.select(this),
+                                    words = text.text().split(/\s+/).reverse(),
+                                    word,
+                                    line = [],
+                                    lineNumber = 0,
+                                    lineHeight = 1.1, // ems
+                                    y = text.attr("y"),
+                                    dy = parseFloat(text.attr("dy")),
+                                    tspan = text.text(null).append("tspan").attr("x", 0).attr("y", y).attr("dy", dy + "em");
+                                    while (word = words.pop()) {
+                                        line.push(word);
+                                        tspan.text(line.join(" "));
+                                        if (tspan.node().getComputedTextLength() > width) {
+                                            line.pop();
+                                            tspan.text(line.join(" "));
+                                            line = [word];
+                                            tspan = text.append("tspan").attr("x", 0).attr("y", y).attr("dy", ++lineNumber * lineHeight + dy + "em").text(word);
+                                        }
+                                    }
+                                });
+                            }
+                                            
+                        function type(d) {
+                        d.oee = +d.oee;
+                        return d;
+                        }
+
+
+
+                    
+                    socket.emit('oee', {process_data: '<%- process %>'});
+                    });
+                
+               
+            });
+        </script>
+        
 
     </body>
 </html>
