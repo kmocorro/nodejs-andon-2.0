@@ -41,6 +41,7 @@ if(mm<10) {
 //  will use this for query real-time 
 today = yyyy + '-' + mm + '-' + dd;
 
+
 //  index
 app.get('/', function(req, res){
     
@@ -51,6 +52,7 @@ app.get('/realtime/:process_url', function(req, res){
     let process_url = req.params.process_url;
     res.render('process', {process: process_url});
 });
+
 
 io.on('connection', function(socket){
     // HOURLY move socket
@@ -334,7 +336,7 @@ io.on('connection', function(socket){
                 });
             }
 
-            //  query tool outs via cload
+            //  query tool outs via cloud
             function queryToolOuts(){
                 return new Promise(function(resolve, reject){
                     mysql.getConnection(function(err, connection){
@@ -358,35 +360,59 @@ io.on('connection', function(socket){
                 });
             }
 
+            function queryFabHour(){
+                return new Promise(function(resolve, reject){
+                    mysql.getConnection(function(err, connection){
+                        if(err){reject(err);}
+                        connection.query({
+                            sql: 'SELECT HOUR(DATE_ADD(date_time, INTERVAL -390 MINUTE)) + 1 AS fab_hour FROM MES_OUT_DETAILS WHERE process_id = ? AND DATE(DATE_ADD(date_time, INTERVAL -390 MINUTE)) = DATE(DATE_ADD(?, INTERVAL -0 MINUTE)) GROUP BY process_id, HOUR(DATE_ADD(date_time, INTERVAL -390 MINUTE)) ORDER BY fab_hour DESC LIMIT 1',
+                            values: [process_from_emit, today]
+                        },  function(err, results, fields){
+                            if(err){reject(err);}
+                                let fabHour_obj=[];
+                                    fabHour_obj.push({
+                                        fab_hour: results[0].fab_hour
+                                    });
+                                resolve(fabHour_obj);
+                        });
+                    });
+                });
+
+
+            }
+
+
 
             queryLocalSettings().then(function(localSettings_obj){
                 return queryToolOuts().then(function(ToolOuts_obj){
-                    //console.log(localSettings_obj);   
-                    //console.log(ToolOuts_obj);
-                    let oee_obj=[];
-                    let oeeTarget_obj=[];
-                        
-                        for(let i=0;i<localSettings_obj.length;i++){
-                            for(let j=0;j<ToolOuts_obj.length;j++){
-                                if(ToolOuts_obj[j].eq_name == localSettings_obj[i].eq_name){
-                                        
-                                    oee_obj.push({
-                                        eq_name: localSettings_obj[i].eq_name,
-                                        oee: ((ToolOuts_obj[j].out_qty/localSettings_obj[i].uph/24) *100).toFixed(0)
-                                    });
+                    return queryFabHour().then(function(fabHour_obj){
 
-                                    oeeTarget_obj.push({
-                                        eq_name: localSettings_obj[i].eq_name,
-                                        oee: localSettings_obj[i].oee_target
-                                    });
-    
+                        //console.log(localSettings_obj);   
+                        //console.log(ToolOuts_obj);
+                        let oee_obj=[];
+                        let oeeTarget_obj=[];
+                            
+                            for(let i=0;i<localSettings_obj.length;i++){
+                                for(let j=0;j<ToolOuts_obj.length;j++){
+                                    if(ToolOuts_obj[j].eq_name == localSettings_obj[i].eq_name){
+                                            
+                                        oee_obj.push({
+                                            eq_name: localSettings_obj[i].eq_name,
+                                            oee: ((ToolOuts_obj[j].out_qty/localSettings_obj[i].uph/fabHour_obj[0].fab_hour) *100).toFixed(0)
+                                        });
+
+                                        oeeTarget_obj.push({
+                                            eq_name: localSettings_obj[i].eq_name,
+                                            oee: localSettings_obj[i].oee_target
+                                        });
+        
+                                    }
                                 }
                             }
-                        }
 
-                        
-                    socket.emit('oee_obj', TSV.stringify(oee_obj), TSV.stringify(oeeTarget_obj));
+                        socket.emit('oee_obj', TSV.stringify(oee_obj), TSV.stringify(oeeTarget_obj));
 
+                    });
                 });
             });
             

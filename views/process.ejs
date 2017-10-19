@@ -15,7 +15,7 @@
             <div class="row">
                 <div class="col-md-4">
                     <div class="overallYield" style="font-weight:700;"></div>
-                    <div class="svgYield"></div>
+                    <div class="svgYield"></div><div id="ddate" style="font-weight:700;"></div>
                 </div>
                 <div class="col-md-4">
                     <p><strong>OEE</strong></p>
@@ -858,6 +858,17 @@
             });
         </script>
         
+
+        <!-- time-->
+        <script>
+            var today =  new Date();
+            var MS_PER_MINUTE = 60000;
+            var DELAYmin = 10;
+            var todayMinus10min = new Date(today - (DELAYmin * MS_PER_MINUTE));
+            document.getElementById("ddate").innerHTML = today.toDateString() + ' ' + todayMinus10min.toLocaleTimeString();
+            
+        </script>
+
 
     </body>
 </html>
