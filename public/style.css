@@ -1,0 +1,276 @@
+.wrapper {    
+	margin-top: 50px;
+  margin-bottom: 25px;
+  
+  overflow: auto;
+  padding-bottom: 39px;
+}
+
+#footer{
+  width: 100%;
+  height: 25px;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  background-color: #F7F9FA;
+}
+#footerDetails{
+  margin: 0;
+  text-align: center;
+  color: #9e9e9e;
+  font-size: 12px;
+  padding: 3px 5px 3px;
+}
+.form-signin {
+  max-width: 420px;
+  padding: 30px 38px 10px;
+  margin: 0 auto;
+  background-color: #fff;
+  border: 1px dotted rgba(0,0,0,0.1);  
+  }
+
+
+.form-signin-heading {
+  text-align:center;
+  margin-bottom: 30px;
+}
+
+.form-control {
+  position: relative;
+  font-size: 16px;
+  height: auto;
+  padding: 10px;
+}
+
+input[type="text"] {
+  margin-bottom: 0px;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+input[type="password"] {
+  margin-bottom: 20px;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+img {
+  width: 100%;
+  height: auto;
+}
+
+.front {
+  object-fit: cover;
+  width: 100%;
+  height: 250px;
+}
+
+.colorgraph {
+  height: 7px;
+  border-top: 0;
+  background: #c4e17f;
+  border-radius: 5px;
+  background-image: -webkit-linear-gradient(left, #c4e17f, #c4e17f 12.5%, #f7fdca 12.5%, #f7fdca 25%, #fecf71 25%, #fecf71 37.5%, #f0776c 37.5%, #f0776c 50%, #db9dbe 50%, #db9dbe 62.5%, #c49cde 62.5%, #c49cde 75%, #669ae1 75%, #669ae1 87.5%, #62c2e4 87.5%, #62c2e4);
+  background-image: -moz-linear-gradient(left, #c4e17f, #c4e17f 12.5%, #f7fdca 12.5%, #f7fdca 25%, #fecf71 25%, #fecf71 37.5%, #f0776c 37.5%, #f0776c 50%, #db9dbe 50%, #db9dbe 62.5%, #c49cde 62.5%, #c49cde 75%, #669ae1 75%, #669ae1 87.5%, #62c2e4 87.5%, #62c2e4);
+  background-image: -o-linear-gradient(left, #c4e17f, #c4e17f 12.5%, #f7fdca 12.5%, #f7fdca 25%, #fecf71 25%, #fecf71 37.5%, #f0776c 37.5%, #f0776c 50%, #db9dbe 50%, #db9dbe 62.5%, #c49cde 62.5%, #c49cde 75%, #669ae1 75%, #669ae1 87.5%, #62c2e4 87.5%, #62c2e4);
+  background-image: linear-gradient(to right, #c4e17f, #c4e17f 12.5%, #f7fdca 12.5%, #f7fdca 25%, #fecf71 25%, #fecf71 37.5%, #f0776c 37.5%, #f0776c 50%, #db9dbe 50%, #db9dbe 62.5%, #c49cde 62.5%, #c49cde 75%, #669ae1 75%, #669ae1 87.5%, #62c2e4 87.5%, #62c2e4);
+}
+
+.svgGraph {
+  display: inline-block;
+position: relative;
+  width: 100%;
+  height: 100%;
+  padding-top: 10px;
+}
+
+.posterNum {
+  
+      background-color: #fff;
+      border-radius: 5px;
+      -webkit-box-shadow: 0 1px 4px rgba(0,0,0,.25);
+      box-shadow: 0 1px 4px rgba(0,0,0,.25);
+      margin-bottom: 20px;
+      height: 100%;
+      padding: 0 15px 15px;
+      overflow: auto;
+      width: 100%;
+  }
+
+.section {
+  
+      background-color: #fff;
+      border-radius: 5px;
+      -webkit-box-shadow: 0 1px 4px rgba(0,0,0,.25);
+      box-shadow: 0 1px 4px rgba(0,0,0,.25);
+      margin-bottom: 20px;
+      min-height: 150px;
+      padding: 7px 15px 15px;
+      overflow: auto;
+      margin-top:18px;
+      
+  }
+  
+  .sectionChart {
+  
+      background-color: #fff;
+      border-radius: 5px;
+      -webkit-box-shadow: 0 1px 4px rgba(0,0,0,.25);
+      box-shadow: 0 1px 4px rgba(0,0,0,.25);
+      margin-bottom: 20px;
+      height: 100%;
+      padding: 0 15px 15px;
+      overflow: auto;
+      width: 100%;
+  }
+
+  .rankContainer {
+
+    max-width: 1440px;
+
+  }
+
+  .container {
+    
+    min-height: 100%;
+    position: relative;
+    
+  }
+  
+  .axis text {
+    font: 18px sans-serif;
+  }
+  
+  .axis path,
+  .axis line {
+    fill: none;
+    stroke: #000;
+    shape-rendering: crispEdges;
+  }
+  
+  .bar {
+    fill: orange;
+    fill-opacity: .8;
+  }
+  
+  .x.axis path {
+    display: none;
+  }
+  
+  label { 
+    font-size: 20px;
+  }
+  
+.shuttleSelection{
+    float: none;
+    margin: 0
+}
+select {
+  display: block;
+  margin: 0 auto;
+  }
+
+.error{
+  color: red;
+}
+  
+  
+#myImg {
+  border-radius: 5px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+#myImg:hover {opacity: 0.7;}
+
+/* The Modal (background) */
+.modal {
+  display: none; /* Hidden by default */
+  position: fixed; /* Stay in place */
+  z-index: 1; /* Sit on top */
+  padding-top: 200px; /* Location of the box */
+  left: 0;
+  top: 0;
+  width: 100%; /* Full width */
+  height: 100%; /* Full height */
+  overflow: auto; /* Enable scroll if needed */
+  background-color: rgba(0,0,0,.50); /* Fallback color */
+ /* Black w/ opacity */
+}
+
+/* Modal Content (image) */
+.modal-content {
+  margin: auto;
+  display: block;
+  width: 100%;
+  max-width: 700px;
+}
+
+/* Caption of Modal Image */
+#caption {
+  margin: auto;
+  display: block;
+  width: 80%;
+  max-width: 700px;
+  text-align: center;
+  color: #ccc;
+  padding: 10px 0;
+  height: 150px;
+}
+
+/* Add Animation */
+.modal-content, #caption {    
+  -webkit-animation-name: zoom;
+  -webkit-animation-duration: 0.6s;
+  animation-name: zoom;
+  animation-duration: 0.6s;
+}
+
+@-webkit-keyframes zoom {
+  from {-webkit-transform:scale(0)} 
+  to {-webkit-transform:scale(1)}
+}
+
+@keyframes zoom {
+  from {transform:scale(0)} 
+  to {transform:scale(1)}
+}
+
+/* The Close Button */
+.close {
+  position: absolute;
+  top: 15px;
+  right: 35px;
+  color: #f1f1f1;
+  font-size: 40px;
+  font-weight: bold;
+  transition: 0.3s;
+}
+
+.close:hover,
+.close:focus {
+  color: #bbb;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+/* 100% Image Width on Smaller Screens */
+@media only screen and (max-width: 700px){
+  .modal-content {
+      width: 100%;
+  }
+}
+
+.post-content {
+  background: none repeat scroll 0 0 #FFFFFF;
+  opacity: 0.5;
+  top:0;
+  left:0;
+  position: absolute;
+}
+
+#countdown {
+  font-size: 20px;
+  color: red;
+  margin:auto;
+}

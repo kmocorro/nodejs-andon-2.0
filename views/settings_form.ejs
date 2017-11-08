@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script type="text/javascript" src="./jeasyui/jquery.min.js"></script>
+</head>
+
+<body>
+    <form method="POST">
+        <table class="dv-table" style="width:100%; border:1px solid #ccc; padding:5px; margin-top:5px;">
+            <tbody>
+                <tr>
+                    <td>ID</td>
+                    <td><input name="eq_id" class="easyui-validatebox validatebox-text" required="true" readonly></td>
+                    <td>UPH</td>
+                    <td><input name="uph" class="easyui-validatebox validatebox-text" required="true"></td>
+                </tr>
+                <tr>
+                    <td>OEE Target</td>
+                    <td><input name="oee_target" class="easyui-validatebox validatebox-text" required="true"></td>
+                    <td>Yield Target</td>
+                    <td><input name="yield_target" class="easyui-validatebox validatebox-text" required="true"></td>
+                </tr>
+            </tbody>
+        </table>
+        <div style="padding:5px 0;text-align:right;padding-right:30px;">
+            <a href="javascript:void(0)" class="easyui-linkbutton l-btn l-btn-small l-btn-plain" iconcls="icon-save" plain="true" onclick="save1(this)" group id>
+                <span class="l-btn-left l-btn-icon-left">Save</span>
+                <span clas="l-btn-icon icon-save">&nbsp;</span>
+            </a>
+            <a href="javascript:void(0)" class="easyui-linkbutton l-btn l-btn-small l-btn-plain" iconcls="icon-cancel" plain="true" onclick="cancel1(this)" group id>
+                <span class="l-btn-left l-btn-icon-left">Cancel</span>
+                <span clas="l-btn-icon icon-cancel">&nbsp;</span>
+            </a>
+        </div>
+    </form>
+    <script type="type/javascript">
+        function save1(target){
+            var tr = $(target).closest('.datagrid-row-detail').closest('tr').prev();
+            var index = parseInt(tr.attr('datagrid-row-index'));
+            saveItem(index);
+        }
+        function cancel1(target){
+            var tr = $(target).closest('.datagrid-row-detail').closest('tr').prev();
+            var index = parseInt(tr.attr('datagrid-row-index'));
+            console.log(index)
+            cancelItem(index);
+        }
+    </script>
+</body>
+</html>

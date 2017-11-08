@@ -161,9 +161,9 @@ stroke-width: 1.5px;
 
 
   body {
-    font: 12px sans-serif;
+    font: 16px sans-serif;
     padding: 20px;
-    background-color: #f5f7fa;
+    background-color: #fff;
   }
   
   svg {
@@ -181,7 +181,8 @@ stroke-width: 1.5px;
   }
   
   svg g {
-    fill: #ACACAC;
+    fill: #2a2a2a;
+    font-size: 11px;
   }
   
   svg g text.label,

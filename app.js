@@ -10,7 +10,6 @@ var moment = require('moment');
 var TSV = require('tsv');
 
 var Promise = require('bluebird');
-
 var fs = require('fs');
 
 var port = process.env.PORT || 2000;
@@ -44,12 +43,96 @@ today = '2017' + '-' + '11' + '-' + '3';
 
 //  index
 app.get('/', function(req, res){
-    
+    res.render('index');
 });
+
+//  validate local settings changes
+app.post('/validate/settings', function(req, res){
+
+
+});
+
+//  edit local settings
+app.get('/settings', function(req, res){
+    res.render('settings');
+});
+
+//  query tool local settings home page
+app.post('/toolLocalSettings', function(req, res){
+    mysqlLocal.getConnection(function(err, connection){
+        connection.query({
+            sql: 'SELECT eq_id, process_name, eq_name, uph, oee_target, yield_target FROM tbl_default'
+        },  function(err, results, fields){
+            let toolLocalSettings_obj=[];
+                for(let i=0;i<results.length;i++){
+                    toolLocalSettings_obj.push({
+                        eq_id: results[i].eq_id,
+                        process_name: results[i].process_name,
+                        eq_name: results[i].eq_name,
+                        uph: results[i].uph,
+                        oee_target: results[i].oee_target,
+                        yield_target: results[i].yield_target
+                    });
+                }
+            res.send(JSON.stringify(toolLocalSettings_obj));
+        });
+        connection.release();
+    });
+});
+
+//  query tool local settings home page
+app.get('/toolLocalSettings/:expand_url', function(req, res){
+    let expand_url = req.params.expand_url;
+    mysqlLocal.getConnection(function(err, connection){
+        connection.query({
+            sql: 'SELECT eq_id, process_name, eq_name, uph, oee_target, yield_target FROM tbl_default WHERE eq_id=?',
+            values:[expand_url]
+        },  function(err, results, fields){
+            let toolLocalSettings_obj=[];
+                for(let i=0;i<results.length;i++){
+                    toolLocalSettings_obj.push({
+                        eq_id: results[i].eq_id,
+                        process_name: results[i].process_name,
+                        eq_name: results[i].eq_name,
+                        uph: results[i].uph,
+                        oee_target: results[i].oee_target,
+                        yield_target: results[i].yield_target
+                    });
+                }
+                let toolSettings = JSON.stringify(toolLocalSettings_obj);
+            res.render('settings_form', {toolSettings});
+        });
+        connection.release();
+    });
+});
+
+//  save changes
+app.post('/updateLocalSettings', function(req, res){
+    let post_eq = req.body.eq_id;
+    let post_uph = req.body.uph;
+    let post_oee = req.body.oee_target;
+    let post_yield = req.body.yield_target;
+
+    console.log(post_eq);
+    console.log(post_uph);
+    console.log(post_oee);
+    console.log(post_yield);
+
+
+    mysqlLocal.getConnection(function(err, connection){
+        connection.query({
+            sql: 'UPDATE tbl_default SET uph=?, oee_target=?, yield_target=? WHERE eq_id=?',
+            values: [post_uph, post_oee, post_yield, post_eq]
+        },  function(err, results, fields){
+        });
+        connection.release();
+    });
+});
+
 
 //  realtime per process
 //  known bugs as of 2017-10-23:
-//  1.) "today" should be dynamic - DONE 2017-11-03
+//  1.) "today" should be dynamic - DONE 2017-11-03 patched 2017-11-08
 //  2.) "more error handling" fab_hour and mysql query
 //  3.) "MRL" tools should be categorized per bank - get the comment section on the query and use the comment section to get the bank name
 app.get('/realtime/:process_url', function(req, res){
@@ -510,15 +593,6 @@ io.on('connection', function(socket){
             });
             
     });
-});
-
-app.get('/daily/:date_url/:process_url', function(req, res){
-    let date_url = req.params.date_url;
-    let process_url = req.params.process_url;
-        console.log(date_url);
-        console.log(process_url);
-
-        res.render('daily', {process: process_url} );
 });
 
 
