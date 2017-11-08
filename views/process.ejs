@@ -18,7 +18,7 @@
                     <div class="svgYield"></div><div id="ddate" style="font-weight:700;"></div>
                 </div>
                 <div class="col-md-4">
-                    <p><strong>OEE</strong></p>
+                    <p><strong>Real-Time OEE</strong></p>
                     <div class="oee"></div>
                 </div>
                 <div class="col-md-4">
@@ -47,9 +47,8 @@
         <script>
             $(function(){
                 var socket = io();
-                socket.emit('yield', {process_data: '<%- process %>'});
                 
-                
+                socket.emit('yield', {process_data: '<%- process %>', today_data: new Date()});
 
                 socket.on('yield_obj', function(try_obj, line_obj){
                    // console.log(try_obj);
@@ -177,7 +176,7 @@
                   return d;
                 }
 
-                socket.emit('yield', {process_data: '<%- process %>'});
+                socket.emit('yield', {process_data: '<%- process %>', today_data: new Date()});
                 });
             });
         </script>
@@ -185,7 +184,7 @@
         <script>
             $(function(){
                 var socket = io();
-                socket.emit('moves', {process_data: '<%- process %>'});
+                socket.emit('moves', {process_data: '<%- process %>', today_data: new Date()});
 
                 socket.on('process_obj', function(process_obj){
                  //   console.log(process_obj);
@@ -295,7 +294,7 @@
                     focus.select("text").text(formatCurrency(d.moves));
                 }
                 //});
-                    socket.emit('moves', {process_data: '<%- process %>'});
+                    socket.emit('moves', {process_data: '<%- process %>', today_data: new Date()});
                 });
             });
         </script>
@@ -304,7 +303,7 @@
         <script>
             $(function(){
                 var socket = io();
-                    socket.emit('scrap', {process_data: '<%- process %>'});
+                    socket.emit('scrap', {process_data: '<%- process %>', today_data: new Date()});
 
                         socket.on('scrapDPPM_obj', function(scrapDPPM_obj){
 
@@ -431,7 +430,7 @@
                             
 
                         
-                            socket.emit('scrap', {process_data: '<%- process %>'});
+                            socket.emit('scrap', {process_data: '<%- process %>', today_data: new Date()});
                         });
 
 
@@ -442,7 +441,7 @@
         <script>
             $(function(){
                 var socket = io();
-                socket.emit('yieldloss', {process_data: '<%- process %>'});
+                socket.emit('yieldloss', {process_data: '<%- process %>', today_data: new Date()});
 
                 socket.on('overall_yield', function(overall_yield){
 
@@ -459,7 +458,7 @@
                       };
                     });
 
-                socket.emit('yieldloss', {process_data: '<%- process %>'});
+                socket.emit('yieldloss', {process_data: '<%- process %>', today_data: new Date()});
                 });
             });
         </script>
@@ -468,7 +467,7 @@
         <script>
             $(function(){
                 var socket = io();
-                socket.emit('status', {process_data: '<%- process %>'});
+                socket.emit('status', {process_data: '<%- process %>', today_data: new Date()});
 
                 socket.on('toolStat_obj', function(toolStat_obj){
 
@@ -707,7 +706,7 @@
                     }
                 //});
 
-                socket.emit('status', {process_data: '<%- process %>'});
+                socket.emit('status', {process_data: '<%- process %>', today_data: new Date()});
                 });
             });
         </script>
@@ -716,7 +715,8 @@
         <script>
             $(function(){
                 var socket = io();
-                socket.emit('oee', {process_data: '<%- process %>'});
+
+                socket.emit('oee', {process_data: '<%- process %>', today_data: new Date()});
 
                     socket.on('oee_obj', function(oee_obj, oeeTarget_obj){
                         
@@ -851,7 +851,7 @@
 
 
                     
-                    socket.emit('oee', {process_data: '<%- process %>'});
+                    socket.emit('oee', {process_data: '<%- process %>', today_data: new Date()});
                     });
                 
                

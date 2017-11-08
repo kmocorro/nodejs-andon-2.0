@@ -39,7 +39,7 @@ if(mm<10) {
 }
 
 //  will use this for query real-time 
-today = yyyy + '-' + mm + '-' + dd;
+today = '2017' + '-' + '11' + '-' + '3';
 
 
 //  index
@@ -47,24 +47,36 @@ app.get('/', function(req, res){
     
 });
 
-//  per process
+//  realtime per process
+//  known bugs as of 2017-10-23:
+//  1.) "today" should be dynamic - DONE 2017-11-03
+//  2.) "more error handling" fab_hour and mysql query
+//  3.) "MRL" tools should be categorized per bank - get the comment section on the query and use the comment section to get the bank name
 app.get('/realtime/:process_url', function(req, res){
     let process_url = req.params.process_url;
     res.render('process', {process: process_url});
 });
 
-
 io.on('connection', function(socket){
     // HOURLY move socket
     socket.on('moves', function(process_data){
-
         let process_from_emit = process_data.process_data;
-
+        //let today_from_emit = moment(process_data.today_data).format('YYYY-MM-DD');
+        // had to declare it as global for socket.on('moves')
+        if(Date.parse(process_data.today_data) >= Date.parse(moment(process_data.today_data).format('YYYY-MM-DD, 00:00:00')) && Date.parse(process_data.today_data) <=  Date.parse(moment(process_data.today_data).format('YYYY-MM-DD, 06:29:59'))) {
+            // this way, I could manipulate the date for PM-MIDNIGHT shift
+            today_from_emit = moment(process_data.today_data).subtract(1, "days").format('YYYY-MM-DD');
+            // console.log(today_from_emit);
+        }else{
+            // this way, I could manipulate the date for AM shift
+            today_from_emit = moment(process_data.today_data).format('YYYY-MM-DD');
+            // console.log(today_from_emit);
+        }
         mysql.getConnection(function(err, connection){
             if(err){reject(err);}
             connection.query({
                sql:'SELECT process_id, SUM(out_qty) AS out_qty, HOUR(DATE_ADD(date_time, INTERVAL -390 MINUTE)) + 1 AS fab_hour , count(*) AS num_moves FROM MES_OUT_DETAILS WHERE process_id = ? AND DATE(DATE_ADD(date_time, INTERVAL -390 MINUTE)) = DATE(DATE_ADD(?, INTERVAL -0 MINUTE)) GROUP BY process_id, HOUR(DATE_ADD(date_time, INTERVAL -390 MINUTE))',
-               values: [process_from_emit, today] 
+               values: [process_from_emit, today_from_emit] 
             },  function(err, results, fields){
                     let obj=[];
                         for(let i=0;i<results.length;i++){
@@ -84,13 +96,24 @@ io.on('connection', function(socket){
     // YIELD socket
     socket.on('yield', function(process_data){    
         let process_from_emit = process_data.process_data;
+        //let today_from_emit = moment(process_data.today_data).format('YYYY-MM-DD');
+        // had to declare it as global for socket.on('yield')
+        if(Date.parse(process_data.today_data) >= Date.parse(moment(process_data.today_data).format('YYYY-MM-DD, 00:00:00')) && Date.parse(process_data.today_data) <=  Date.parse(moment(process_data.today_data).format('YYYY-MM-DD, 06:29:59'))) {
+            // this way, I could manipulate the date for PM-MIDNIGHT shift
+            today_from_emit = moment(process_data.today_data).subtract(1, "days").format('YYYY-MM-DD');
+            // console.log(today_from_emit);
+        }else{
+            // this way, I could manipulate the date for AM shift
+            today_from_emit = moment(process_data.today_data).format('YYYY-MM-DD');
+            // console.log(today_from_emit);
+        }
         // query promise :O
         function queryYield(){
             return new Promise(function(resolve, reject){
                 mysql.getConnection(function(err, connection){
                     connection.query({
-                        sql: 'SELECT B.eq_name, sum(A.scrap_qty) AS scrap_qty, sum(C.out_qty) AS out_qty  FROM MES_SCRAP_DETAILS A   JOIN MES_EQ_INFO B ON A.eq_id = B.eq_id   JOIN MES_OUT_DETAILS C ON A.lot_id = C.lot_id  WHERE DATE(DATE_ADD(A.date_time, INTERVAL -390 MINUTE)) = DATE(DATE_ADD(?, INTERVAL -0 MINUTE)) AND A.process_id = ?  AND DATE(DATE_ADD(C.date_time, INTERVAL -390 MINUTE)) = DATE(DATE_ADD(?, INTERVAL -0 MINUTE))  group by B.eq_name',
-                        values: [today, process_from_emit, today]
+                        sql: 'SELECT A.eq_name AS eq_name, A.scrap_qty AS scrap_qty, B.out_qty AS out_qty FROM   (SELECT B.eq_name, SUM(A.scrap_qty) AS scrap_qty    FROM MES_SCRAP_DETAILS A      JOIN MES_EQ_INFO B  ON A.eq_id = B.eq_id     WHERE DATE(DATE_ADD(A.date_time, INTERVAL -390 MINUTE)) = DATE(DATE_ADD(?, INTERVAL -0 MINUTE))   AND A.process_id = ?     GROUP BY B.eq_name ) A JOIN   (SELECT B.eq_name, SUM(A.out_qty) AS out_qty     FROM MES_OUT_DETAILS A     JOIN MES_EQ_INFO B   ON A.eq_id = B.eq_id    WHERE DATE(DATE_ADD(A.date_time, INTERVAL -390 MINUTE)) = DATE(DATE_ADD(?, INTERVAL -0 MINUTE))   AND A.process_id = ?  GROUP BY B.eq_name ) B ON A.eq_name = B.eq_name',
+                        values: [today_from_emit, process_from_emit, today_from_emit, process_from_emit]
                     },  function(err, results, fields){
                             if(err){reject(err);}
                             let yield_obj=[];
@@ -115,6 +138,7 @@ io.on('connection', function(socket){
                         sql: 'SELECT * FROM tbl_default WHERE process_name = ?',
                         values: [process_from_emit]    
                     },  function(err, results, fields){
+                        if(err){reject(err);}
                             let yieldTarget_obj=[];
                                 for(let i=0;i<results.length;i++){
                                     yieldTarget_obj.push({
@@ -125,22 +149,43 @@ io.on('connection', function(socket){
                                 }
                             resolve(yieldTarget_obj);
                     });
+                    connection.release();
                 });
-
+                
             });
         }
         
-        queryYield().then(function(try_obj){
+        queryYield().then(function(yield_obj){
             return queryYieldTarget().then(function(yieldTarget_obj){
                 let line_obj=[];
-                    for(let i=0;i<try_obj.length;i++){
-                        if(try_obj[i].eq_name == yieldTarget_obj[i].eq_name){
-                            line_obj.push({
-                                name: try_obj[i].name,
-                                size: yieldTarget_obj[i].size
-                            });
+                let try_obj=[];
+                    for(let i=0;i<yield_obj.length;i++){
+                        for(let j=0;j<yieldTarget_obj.length;j++){
+                            if(yield_obj[i].name === yieldTarget_obj[j].name){
+                                try_obj.push({
+                                    name: yieldTarget_obj[i].name,
+                                    size: yield_obj[i].size
+                                });
+
+                                line_obj.push({
+                                    name: yieldTarget_obj[i].name,
+                                    size: yieldTarget_obj[j].size
+                                });
+                            } else {
+                                try_obj.push({
+                                    name: yieldTarget_obj[i].name,
+                                    size: 0
+                                });
+
+                                line_obj.push({
+                                    name: yieldTarget_obj[i].name,
+                                    size: yieldTarget_obj[j].size
+                                });
+                            }
                         }
+                        
                     }
+                    
                 socket.emit('yield_obj', TSV.stringify(try_obj), TSV.stringify(line_obj));
             });
         });
@@ -150,14 +195,24 @@ io.on('connection', function(socket){
     // socket top 5 defect
     socket.on('scrap', function(process_data){
         let process_from_emit = process_data.process_data;
-
+        //let today_from_emit = moment(process_data.today_data).format('YYYY-MM-DD');
+        // had to declare it as global for socket.on('scrap')
+        if(Date.parse(process_data.today_data) >= Date.parse(moment(process_data.today_data).format('YYYY-MM-DD, 00:00:00')) && Date.parse(process_data.today_data) <=  Date.parse(moment(process_data.today_data).format('YYYY-MM-DD, 06:29:59'))) {
+            // this way, I could manipulate the date for PM-MIDNIGHT shift
+            today_from_emit = moment(process_data.today_data).subtract(1, "days").format('YYYY-MM-DD');
+            // console.log(today_from_emit);
+        }else{
+            // this way, I could manipulate the date for AM shift
+            today_from_emit = moment(process_data.today_data).format('YYYY-MM-DD');
+            // console.log(today_from_emit);
+        }
         function queryScrapQty(){
             return new Promise(function(resolve, reject){
                 mysql.getConnection(function(err, connection){
                     if(err){reject(err);}
                     connection.query({
                         sql: 'SELECT scrap_code, SUM(scrap_qty) AS scrap_qty FROM MES_SCRAP_DETAILS WHERE DATE(DATE_ADD(date_time, INTERVAL -390 MINUTE)) = DATE(DATE_ADD(?, INTERVAL -0 MINUTE)) AND process_id = ? GROUP BY scrap_code ORDER BY SUM(scrap_qty) DESC LIMIT 10',
-                        values: [today, process_from_emit]
+                        values: [today_from_emit, process_from_emit]
                     },  function(err, results, fields){
                         if(err){reject(err);}
                             let scrap_obj=[];
@@ -180,7 +235,7 @@ io.on('connection', function(socket){
                     if(err){reject(err);}
                     connection.query({
                         sql: 'SELECT A.proc_id , SUM(C.out_qty) AS out_qty FROM		 (SELECT eq_id, proc_id  FROM MES_EQ_PROCESS   GROUP BY eq_id ) A     JOIN   MES_EQ_INFO B   ON A.eq_id = B.eq_id   JOIN   MES_OUT_DETAILS C     ON A.eq_id = C.eq_id   WHERE C.process_id = ? AND C.date_time >= CONCAT(?," 06:30:00") && C.date_time <= CONCAT(? + INTERVAL 1 DAY," 06:30:00")',
-                        values: [process_from_emit, today, today]
+                        values: [process_from_emit, today_from_emit, today_from_emit]
                     },  function(err, results, fields){
                         if(err){reject(err);}
                             let outs_obj=[];
@@ -216,14 +271,24 @@ io.on('connection', function(socket){
     // Overall Yield Loss
     socket.on('yieldloss', function(process_data){
         let process_from_emit = process_data.process_data;
-
+        //let today_from_emit = moment(process_data.today_data).format('YYYY-MM-DD');
+        // had to declare it as global for socket.on('yieldloss')
+        if(Date.parse(process_data.today_data) >= Date.parse(moment(process_data.today_data).format('YYYY-MM-DD, 00:00:00')) && Date.parse(process_data.today_data) <=  Date.parse(moment(process_data.today_data).format('YYYY-MM-DD, 06:29:59'))) {
+            // this way, I could manipulate the date for PM-MIDNIGHT shift
+            today_from_emit = moment(process_data.today_data).subtract(1, "days").format('YYYY-MM-DD');
+            // console.log(today_from_emit);
+        }else{
+            // this way, I could manipulate the date for AM shift
+            today_from_emit = moment(process_data.today_data).format('YYYY-MM-DD');
+            // console.log(today_from_emit);
+        }
             function queryTotalOuts(){
                 return new Promise(function(resolve, reject){
                     mysql.getConnection(function(err, connection){
                         if(err){reject(err);}
                         connection.query({
                             sql: 'SELECT SUM(out_qty) AS out_qty FROM MES_OUT_DETAILS WHERE DATE(DATE_ADD(date_time, INTERVAL -390 MINUTE)) = DATE(DATE_ADD(?, INTERVAL -0 MINUTE)) AND process_id = ?',
-                            values: [today, process_from_emit]
+                            values: [today_from_emit, process_from_emit]
                         },  function(err, results, fields){
                             if(err){reject(err);}
                                 let totalOuts_obj=[];
@@ -242,7 +307,7 @@ io.on('connection', function(socket){
                     mysql.getConnection(function(err, connection){
                         connection.query({
                             sql: 'SELECT SUM(scrap_qty) AS scrap_qty FROM MES_SCRAP_DETAILS WHERE DATE(DATE_ADD(date_time, INTERVAL -390 MINUTE)) = DATE(DATE_ADD(?, INTERVAL -0 MINUTE)) AND process_id = ?',
-                            values: [today, process_from_emit]
+                            values: [today_from_emit, process_from_emit]
                         },  function(err, results, fields){
                                 let totalScrap_obj=[];
                                     totalScrap_obj.push({
@@ -264,10 +329,19 @@ io.on('connection', function(socket){
     });
 
     // STATUS
-
     socket.on('status', function(process_data){
         let process_from_emit = process_data.process_data;
-
+        //let today_from_emit = moment(process_data.today_data).format('YYYY-MM-DD');
+        // had to declare it as global for socket.on('status')
+        if(Date.parse(process_data.today_data) >= Date.parse(moment(process_data.today_data).format('YYYY-MM-DD, 00:00:00')) && Date.parse(process_data.today_data) <=  Date.parse(moment(process_data.today_data).format('YYYY-MM-DD, 06:29:59'))) {
+            // this way, I could manipulate the date for PM-MIDNIGHT shift
+            today_from_emit = moment(process_data.today_data).subtract(1, "days").format('YYYY-MM-DD');
+            // console.log(today_from_emit);
+        }else{
+            // this way, I could manipulate the date for AM shift
+            today_from_emit = moment(process_data.today_data).format('YYYY-MM-DD');
+            // console.log(today_from_emit);
+        }
             //  query tool status via cloud
             function queryToolStat(){
                 return new Promise(function(resolve, reject){
@@ -275,9 +349,9 @@ io.on('connection', function(socket){
                         if(err){reject(err);}
                         connection.query({
                             sql: 'SELECT pretty_table.eq_name, COALESCE(P,0) AS P,  COALESCE(SU,0) AS SU,   COALESCE(SD,0) AS SD,  COALESCE(D,0) AS D,  COALESCE(E,0) AS E, COALESCE(SB,0) AS SB  FROM (SELECT extended_table.eq_name,   SUM(P) AS P,    SUM(SU) AS SU,   SUM(SD) AS SD,    SUM(D) AS D,    SUM(E) AS E,  SUM(SB) AS SB FROM  (SELECT base_table.*,   CASE WHEN base_table.stat_id = "P" THEN base_table.duration END AS P,   CASE WHEN base_table.stat_id = "SU" THEN base_table.duration END AS SU,   CASE WHEN base_table.stat_id = "SD" THEN base_table.duration END AS SD,   CASE WHEN base_table.stat_id = "D" THEN base_table.duration END AS D,  CASE WHEN base_table.stat_id = "E" THEN base_table.duration END AS E,   CASE WHEN base_table.stat_id = "SB" THEN base_table.duration END AS SB  FROM (SELECT G.eq_name,  G.stat_id,  SUM(ROUND(TIME_TO_SEC(TIMEDIFF(G.time_out,G.time_in))/3600,2)) as duration FROM  (SELECT  C.eq_name,    B.stat_id,    IF(B.time_in <= CONCAT(?," 06:30:00") && B.time_out >= CONCAT(?," 06:30:00"),CONCAT(?," 06:30:00"),IF(B.time_in <= CONCAT(?, " 06:30:00"),CONCAT(?," 06:30:00"),IF(B.time_in >= CONCAT(? + INTERVAL 1 DAY, " 06:30:00"),CONCAT(? + INTERVAL 1 DAY," 06:30:00"),B.time_in))) AS time_in ,    IF(B.time_in <= CONCAT(? + INTERVAL 1 DAY," 06:30:00") && B.time_out >= CONCAT(? + INTERVAL 1 DAY, " 06:30:00"),CONCAT(? + INTERVAL 1 DAY, " 06:30:00"),IF(B.time_out <= CONCAT(? , " 06:30:00"),CONCAT(?," 06:30:00"),IF(B.time_out >= CONCAT(? + INTERVAL 1 DAY, " 06:30:00"),CONCAT(? + INTERVAL 1 DAY," 06:30:00"),IF(B.time_out IS NULL && B.time_in < CONCAT(? + INTERVAL 1 DAY," 06:30:00") ,CONVERT_TZ(NOW(),@@SESSION.TIME_ZONE,"+08:00"),B.time_out)))) AS time_out   FROM  (SELECT eq_id, proc_id    FROM MES_EQ_PROCESS    WHERE proc_id = ? GROUP BY eq_id) A   JOIN      MES_EQ_CSTAT_HEAD B    ON A.eq_id = B.eq_id   JOIN     MES_EQ_INFO C   ON A.eq_id = C.eq_id    WHERE    B.time_in >= CONCAT(? - INTERVAL 1 DAY," 00:00:00")   AND A.proc_id = ?) G GROUP BY G.eq_name, G.stat_id) base_table) extended_table  GROUP BY extended_table.eq_name) pretty_table  ',
-                            values: [today, today, today, today, today, today, today, today, today, today, today, today, today, today, today, process_from_emit, today, process_from_emit]
+                            values: [today_from_emit, today_from_emit, today_from_emit, today_from_emit, today_from_emit, today_from_emit, today_from_emit, today_from_emit, today_from_emit, today_from_emit, today_from_emit, today_from_emit, today_from_emit, today_from_emit, today_from_emit, process_from_emit, today_from_emit, process_from_emit]
                         },  function(err, results, fields){
-                                if(err){reject(err);}
+                                if(err){ return reject(err);}
                                     let toolStat_obj=[];
                                         for(let i=0;i<results.length;i++){
                                             toolStat_obj.push({
@@ -306,10 +380,21 @@ io.on('connection', function(socket){
 
     });
 
-    // OEE
+    // OEE WITH DATE FROM SOCKET
     socket.on('oee', function(process_data){
-        let process_from_emit = process_data.process_data;
-
+            let process_from_emit = process_data.process_data;
+            //let today_from_emit = moment(process_data.today_data).format('YYYY-MM-DD');
+            // had to declare it as global for socket.on('oee')
+            if(Date.parse(process_data.today_data) >= Date.parse(moment(process_data.today_data).format('YYYY-MM-DD, 00:00:00')) && Date.parse(process_data.today_data) <=  Date.parse(moment(process_data.today_data).format('YYYY-MM-DD, 06:29:59'))) {
+                // this way, I could manipulate the date for PM-MIDNIGHT shift
+                today_from_emit = moment(process_data.today_data).subtract(1, "days").format('YYYY-MM-DD');
+                // console.log(today_from_emit);
+            }else{
+                // this way, I could manipulate the date for AM shift
+                today_from_emit = moment(process_data.today_data).format('YYYY-MM-DD');
+                // console.log(today_from_emit);
+            }
+            //console.log(today_from_emit)
             //  query tool uph and oee target via local host
             function queryLocalSettings(){
                 return new Promise(function(resolve, reject){
@@ -335,7 +420,6 @@ io.on('connection', function(socket){
                     });
                 });
             }
-
             //  query tool outs via cloud
             function queryToolOuts(){
                 return new Promise(function(resolve, reject){
@@ -343,7 +427,7 @@ io.on('connection', function(socket){
                         if(err){reject(err);}
                         connection.query({
                             sql: 'SELECT B.eq_name, SUM(C.out_qty) AS out_qty FROM		 (SELECT eq_id, proc_id  FROM MES_EQ_PROCESS   GROUP BY eq_id ) A     JOIN   MES_EQ_INFO B   ON A.eq_id = B.eq_id   JOIN   MES_OUT_DETAILS C     ON A.eq_id = C.eq_id   WHERE C.process_id = ? AND C.date_time >= CONCAT(?," 06:30:00") && C.date_time <= CONCAT(? + INTERVAL 1 DAY," 06:30:00")  GROUP BY C.eq_id',
-                            values: [process_from_emit, today, today]
+                            values: [process_from_emit, today_from_emit, today_from_emit]
                         }, function(err, results, field){
                             if(err){reject(err);}
                                 let ToolOuts_obj=[];
@@ -366,7 +450,7 @@ io.on('connection', function(socket){
                         if(err){reject(err);}
                         connection.query({
                             sql: 'SELECT HOUR(DATE_ADD(date_time, INTERVAL -390 MINUTE)) + 1 AS fab_hour FROM MES_OUT_DETAILS WHERE process_id = ? AND DATE(DATE_ADD(date_time, INTERVAL -390 MINUTE)) = DATE(DATE_ADD(?, INTERVAL -0 MINUTE)) GROUP BY process_id, HOUR(DATE_ADD(date_time, INTERVAL -390 MINUTE)) ORDER BY fab_hour DESC LIMIT 1',
-                            values: [process_from_emit, today]
+                            values: [process_from_emit, today_from_emit]
                         },  function(err, results, fields){
                             if(err){reject(err);}
                                 let fabHour_obj=[];
@@ -382,19 +466,16 @@ io.on('connection', function(socket){
             }
 
 
-
             queryLocalSettings().then(function(localSettings_obj){
                 return queryToolOuts().then(function(ToolOuts_obj){
                     return queryFabHour().then(function(fabHour_obj){
-
-                        //console.log(localSettings_obj);   
-                        //console.log(ToolOuts_obj);
+                        
                         let oee_obj=[];
                         let oeeTarget_obj=[];
                             
                             for(let i=0;i<localSettings_obj.length;i++){
                                 for(let j=0;j<ToolOuts_obj.length;j++){
-                                    if(ToolOuts_obj[j].eq_name == localSettings_obj[i].eq_name){
+                                    if(localSettings_obj[i].eq_name === ToolOuts_obj[j].eq_name){
                                             
                                         oee_obj.push({
                                             eq_name: localSettings_obj[i].eq_name,
@@ -406,6 +487,18 @@ io.on('connection', function(socket){
                                             oee: localSettings_obj[i].oee_target
                                         });
         
+                                    } else {
+
+                                        oee_obj.push({
+                                            eq_name: localSettings_obj[i].eq_name,
+                                            oee: 0
+                                        });
+
+                                        oeeTarget_obj.push({
+                                            eq_name: localSettings_obj[i].eq_name,
+                                            oee: localSettings_obj[i].oee_target
+                                        });
+
                                     }
                                 }
                             }
@@ -418,6 +511,17 @@ io.on('connection', function(socket){
             
     });
 });
+
+app.get('/daily/:date_url/:process_url', function(req, res){
+    let date_url = req.params.date_url;
+    let process_url = req.params.process_url;
+        console.log(date_url);
+        console.log(process_url);
+
+        res.render('daily', {process: process_url} );
+});
+
+
 
 server.listen(port);
 
