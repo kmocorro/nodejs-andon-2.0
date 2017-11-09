@@ -2,6 +2,8 @@
 <html>
 <head>
 <script type="text/javascript" src="./jeasyui/jquery.min.js"></script>
+<script type="text/javascript" src="./jeasyui/jquery.easyui.min.js"></script>
+<script type="text/javascript" src="./datagrid-detailview.js"></script>
 </head>
 
 <body>
@@ -33,18 +35,21 @@
             </a>
         </div>
     </form>
-    <script type="type/javascript">
-        function save1(target){
-            var tr = $(target).closest('.datagrid-row-detail').closest('tr').prev();
+    <script type="text/javascript">
+        
+            function save1(target){
+                var tr = $(target).closest('.datagrid-row-detail').closest('tr').prev();
             var index = parseInt(tr.attr('datagrid-row-index'));
             saveItem(index);
-        }
-        function cancel1(target){
+            }
+
+            function cancel1(target){
             var tr = $(target).closest('.datagrid-row-detail').closest('tr').prev();
             var index = parseInt(tr.attr('datagrid-row-index'));
             console.log(index)
             cancelItem(index);
-        }
+            }
+      
     </script>
 </body>
 </html>

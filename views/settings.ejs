@@ -3,41 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <title>Settings</title>
-    <link rel="stylesheet" type="text/css" href="./jeasyui/themes/metro/easyui.css">
+    <link rel="stylesheet" type="text/css" href="./jeasyui/themes/gray/easyui.css">
     <link rel="stylesheet" type="text/css" href="./jeasyui/themes/icon.css">
     <script type="text/javascript" src="./jeasyui/jquery.min.js"></script>
     <script type="text/javascript" src="./jeasyui/jquery.easyui.min.js"></script>
     <script type="text/javascript" src="./datagrid-detailview.js"></script>
+    <link rel="stylesheet" href="../style/settings_style.css">
 </head>
 <body>
-    <div class="easyui-layout" style="width:100%;height:685px;">
-        <div id="p" data-options="region:'west'" title="West" style="width:30%;padding:10px">
-            <p>width: 30%</p>
+    <div class="settingsHeader" style="width:100%;height:54px;">
+        
+    </div>
+    <div class="easyui-layout" style="width:100%;min-height:646px;margin:auto;">
+        <div id="p" data-options="region:'west'" title="" style="width:18.3%;">
+            <div id="dashB" class="easy-layout" style="width:100%;height:100%;">
+            </div>
         </div>
-        <div data-options="region:'center'" title="Center">
-            <table id="dg" title="My Users" style="width:100%;height:100%"
+        <div data-options="region:'center'" title="">
+            <table id="dg" title="Tool Settings" style="width:100%;height:100%;"
             url="/toolLocalSettings" 
-            toolbar="#toolbar" pagination="true"
-            fitColumns="true" singleSelect="true"> <!-- url should be api -->
+            toolbar="#toolbar" pagination=""
+            fitColumns="true" singleSelect="true">
                 <thead>
                     <tr>
-                        <th field="eq_id" width="50">Equipment ID</th>
+                        <th field="eq_id" width="10">ID</th>
                         <th field="process_name" width="50">Process Name</th>
-                        <th field="eq_name" width="50">Equipment Name</th>
-                        <th field="uph" width="50">UPH</th>
-                        <th field="oee_target" width="50">OEE Target</th>
-                        <th field="yield_target" width="50">Yield Target</th>
+                        <th field="eq_name" width="60">Equipment Name</th>
+                        <th field="uph" width="15">UPH</th>
+                        <th data-options="field:'oee_target'" width="15">OEE Target</th>
+                        <th field="yield_target" width="15">Yield Target</th>
                     </tr>
                 </thead>
             </table>
-            <div id="toolbar">
+            <!--<div id="toolbar">
                 <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="icon-add" plain="true" onclick="newItem()">New</a>
                 <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="icon-remove" plain="true" onclick="destroyItem()">Destroy</a>
-            </div>
+            </div>-->
         </div>
     </div>
     <script type="text/javascript">
         $(function(){
+
+            //  editing
             $('#dg').datagrid({
                 view: detailview,
                 detailFormatter:function(index,row){
@@ -51,7 +58,7 @@
                         //href:'show_form.php?index='+index,
                         href:'/toolLocalSettings/'+ row.eq_id ,
                         onLoad:function(){
-                            console.log(row.eq_id, index);
+
                             $('#dg').datagrid('fixDetailRowHeight',index);
                             $('#dg').datagrid('selectRow',index);
                             $('#dg').datagrid('getRowDetail',index).find('form').form('load',row);
@@ -70,6 +77,7 @@
                 onSubmit: function(){
                     return $(this).form('validate');
                 },
+                /*
                 success: function(data){
                     data = eval('('+data+')');
                     data.isNewRecord = false;
@@ -78,6 +86,19 @@
                         index: index,
                         row: data
                     });
+                } */
+                success: function(jsonUpdateResult){
+                    if(!jsonUpdateResult){
+                        $('#dg').datagrid('collapseRow',index);
+                    } else {
+                        
+                        $('#dg').datagrid('collapseRow',index);
+                        $('#dg').datagrid('updateRow',{
+                        index: index,
+                        row: JSON.parse(jsonUpdateResult)
+                        });
+
+                    }
                 }
             });
         }
@@ -89,7 +110,7 @@
                 $('#dg').datagrid('collapseRow',index);
             }
         }
-        function destroyItem(){
+        /*function destroyItem(){
             var row = $('#dg').datagrid('getSelected');
             if (row){
                 $.messager.confirm('Confirm','Are you sure you want to remove this user?',function(r){
@@ -107,7 +128,7 @@
             var index = $('#dg').datagrid('getRows').length - 1;
             $('#dg').datagrid('expandRow', index);
             $('#dg').datagrid('selectRow', index);
-        }
+        }*/
     </script>
 
     <style type="text/css">

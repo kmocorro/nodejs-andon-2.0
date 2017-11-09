@@ -163,7 +163,9 @@ stroke-width: 1.5px;
   body {
     font: 16px sans-serif;
     padding: 20px;
-    background-color: #fff;
+    background-color: #343a40;
+    margin:0px;
+    color: #d6d6d6;
   }
   
   svg {

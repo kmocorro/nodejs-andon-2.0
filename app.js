@@ -113,17 +113,35 @@ app.post('/updateLocalSettings', function(req, res){
     let post_oee = req.body.oee_target;
     let post_yield = req.body.yield_target;
 
-    console.log(post_eq);
-    console.log(post_uph);
-    console.log(post_oee);
-    console.log(post_yield);
-
-
     mysqlLocal.getConnection(function(err, connection){
         connection.query({
             sql: 'UPDATE tbl_default SET uph=?, oee_target=?, yield_target=? WHERE eq_id=?',
             values: [post_uph, post_oee, post_yield, post_eq]
         },  function(err, results, fields){
+
+
+                mysqlLocal.getConnection(function(err, connection){
+                    connection.query({
+                        sql: 'SELECT eq_id, process_name, eq_name, uph, oee_target, yield_target  FROM tbl_default WHERE eq_id=?',
+                        values:[post_eq]
+                    },  function(err, results, fields){
+                        let updateResult_obj=[];
+                        for(let i=0;i<results.length;i++){
+                            updateResult_obj.push({
+                                eq_id: results[i].eq_id,
+                                process_name: results[i].process_name,
+                                eq_name: results[i].eq_name,
+                                uph: results[i].uph,
+                                oee_target: results[i].oee_target,
+                                yield_target: results[i].yield_target
+                            });
+                        }
+                        let jsonUpdateResult = JSON.stringify(updateResult_obj[0]);
+                        res.send(jsonUpdateResult);
+                    });
+                    connection.release();
+                });
+
         });
         connection.release();
     });
@@ -132,7 +150,7 @@ app.post('/updateLocalSettings', function(req, res){
 
 //  realtime per process
 //  known bugs as of 2017-10-23:
-//  1.) "today" should be dynamic - DONE 2017-11-03 patched 2017-11-08
+// DONE 1.) "today" should be dynamic - DONE 2017-11-03 patched 2017-11-08
 //  2.) "more error handling" fab_hour and mysql query
 //  3.) "MRL" tools should be categorized per bank - get the comment section on the query and use the comment section to get the bank name
 app.get('/realtime/:process_url', function(req, res){
@@ -320,7 +338,7 @@ io.on('connection', function(socket){
                         sql: 'SELECT A.proc_id , SUM(C.out_qty) AS out_qty FROM		 (SELECT eq_id, proc_id  FROM MES_EQ_PROCESS   GROUP BY eq_id ) A     JOIN   MES_EQ_INFO B   ON A.eq_id = B.eq_id   JOIN   MES_OUT_DETAILS C     ON A.eq_id = C.eq_id   WHERE C.process_id = ? AND C.date_time >= CONCAT(?," 06:30:00") && C.date_time <= CONCAT(? + INTERVAL 1 DAY," 06:30:00")',
                         values: [process_from_emit, today_from_emit, today_from_emit]
                     },  function(err, results, fields){
-                        if(err){reject(err);}
+                        if(err){return reject(err);}
                             let outs_obj=[];
 
                                 outs_obj.push({
@@ -535,12 +553,15 @@ io.on('connection', function(socket){
                             sql: 'SELECT HOUR(DATE_ADD(date_time, INTERVAL -390 MINUTE)) + 1 AS fab_hour FROM MES_OUT_DETAILS WHERE process_id = ? AND DATE(DATE_ADD(date_time, INTERVAL -390 MINUTE)) = DATE(DATE_ADD(?, INTERVAL -0 MINUTE)) GROUP BY process_id, HOUR(DATE_ADD(date_time, INTERVAL -390 MINUTE)) ORDER BY fab_hour DESC LIMIT 1',
                             values: [process_from_emit, today_from_emit]
                         },  function(err, results, fields){
-                            if(err){reject(err);}
+                            if(err){ return reject(err);}
                                 let fabHour_obj=[];
+                                if(typeof results != 'undefined' || results != null){
                                     fabHour_obj.push({
                                         fab_hour: results[0].fab_hour
                                     });
-                                resolve(fabHour_obj);
+                                    resolve(fabHour_obj);
+                                }
+                                    
                         });
                     });
                 });

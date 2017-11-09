@@ -1,0 +1,15 @@
+body {
+    font: 16px sans-serif;
+    background-color: #fff;
+    margin:0px;
+}
+
+.settingsHeader{
+    background-color: #343a40;
+    color: #d6d6d6;
+}
+
+#dashB {
+    background-color: #343a40;
+    color: #868e96;
+}
